@@ -1,153 +1,196 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
 import '../../data/models/history_expense_model.dart';
 import '../../data/repositories/history_repository.dart';
 import 'history_state.dart';
 
 class HistoryCubit extends Cubit<HistoryState> {
-  final HistoryRepository repository;
+  final HistoryRepository _repository;
 
-  HistoryCubit(this.repository)
-    : super(
-        HistoryState(
-          allExpenses: [],
-          expenses: [],
-          dateFilters: ['All'],
-          selectedFilter: 'All',
-          totalSpent: 0.0,
-          budgetLimit: 10000.0, // ДОБАВЛЕНО: Лимит по умолчанию 10 000 ₴
-          autocompleteSuggestions: [],
-          suggestedPrice: 0.0,
-        ),
-      ) {
-    refreshData(locale: 'uk');
+  HistoryCubit(this._repository) : super(HistoryState()) {
+    loadRecords();
   }
 
-  Future<void> deleteExpense(String id, String locale) async {
-    await repository.deleteExpense(id);
-    refreshData(locale: locale);
-  }
-
-  // Метод изменения лимита бюджета
   void updateBudgetLimit(double newLimit) {
-    emit(state.copyWith(budgetLimit: newLimit));
-  }
-
-  void refreshData({required String locale}) {
-    final list = repository.loadAllExpenses();
-    final currentFilter = state.selectedFilter;
-
-    final List<String> availableFilters = ['All'];
-    availableFilters.addAll(
-      list
-          .map((e) => DateFormat('MMMM yyyy', locale).format(e.date))
-          .toSet()
-          .toList(),
+    // Вызываем _calculateAndEmit, чтобы пересчитать данные с новым лимитом
+    _calculateAndEmit(
+      state.allRecords,
+      state.activeFilter,
+      state.dateFilter, // Если ты добавил поддержку дат
+      currentLimit: newLimit,
     );
-
-    if (currentFilter == 'All') {
-      final total = list.fold<double>(0.0, (sum, item) => sum + item.price);
-      emit(
-        HistoryState(
-          allExpenses: list,
-          expenses: list,
-          dateFilters: availableFilters,
-          selectedFilter: 'All',
-          totalSpent: total,
-          budgetLimit: state.budgetLimit, // СОХРАНЯЕМ
-          autocompleteSuggestions: [],
-          suggestedPrice: 0.0,
-        ),
-      );
-    } else {
-      final filtered = list.where((e) {
-        final key = DateFormat('MMMM yyyy', locale).format(e.date);
-        return key == currentFilter;
-      }).toList();
-
-      final total = filtered.fold<double>(0.0, (sum, item) => sum + item.price);
-      emit(
-        HistoryState(
-          allExpenses: list,
-          expenses: filtered,
-          dateFilters: availableFilters,
-          selectedFilter: currentFilter,
-          totalSpent: total,
-          budgetLimit: state.budgetLimit, // СОХРАНЯЕМ
-          autocompleteSuggestions: [],
-          suggestedPrice: 0.0,
-        ),
-      );
-    }
   }
 
-  void changeFilter(String month, String locale) {
-    if (month == 'All') {
-      final total = state.allExpenses.fold<double>(
-        0.0,
-        (sum, item) => sum + item.price,
-      );
-      emit(
-        state.copyWith(
-          expenses: state.allExpenses,
-          selectedFilter: 'All',
-          totalSpent: total,
-        ),
-      );
-      return;
+  void loadRecords() {
+    emit(state.copyWith(isLoading: true));
+    _calculateAndEmit(
+      _repository.getAllExpenses(),
+      state.activeFilter,
+      state.dateFilter,
+      currentLimit: state.budgetLimit,
+    );
+    _syncOfflineRecords();
+  }
+
+  void changeFilter(HistoryFilterType typeFilter) {
+    _calculateAndEmit(
+      state.allRecords,
+      typeFilter,
+      state.dateFilter,
+      currentLimit: state.budgetLimit,
+    );
+  }
+
+  void changeDateFilter(DateFilterType dateFilter) {
+    _calculateAndEmit(
+      state.allRecords,
+      state.activeFilter,
+      dateFilter,
+      currentLimit: state.budgetLimit,
+    );
+  }
+
+  void _calculateAndEmit(
+    List<HistoryExpenseModel> records,
+    HistoryFilterType typeFilter,
+    DateFilterType dateFilter, {
+    required double currentLimit,
+  }) {
+    final now = DateTime.now();
+
+    // 1. Сортировка
+    final sortedRecords = List<HistoryExpenseModel>.from(records)
+      ..sort((a, b) => b.date.compareTo(a.date));
+
+    // 2. Фильтр по дате
+    List<HistoryExpenseModel> dateFiltered = sortedRecords;
+    switch (dateFilter) {
+      case DateFilterType.today:
+        dateFiltered = sortedRecords
+            .where(
+              (r) =>
+                  r.date.year == now.year &&
+                  r.date.month == now.month &&
+                  r.date.day == now.day,
+            )
+            .toList();
+        break;
+      case DateFilterType.yesterday:
+        final y = now.subtract(const Duration(days: 1));
+        dateFiltered = sortedRecords
+            .where(
+              (r) =>
+                  r.date.year == y.year &&
+                  r.date.month == y.month &&
+                  r.date.day == y.day,
+            )
+            .toList();
+        break;
+      case DateFilterType.thisWeek:
+        final start = now.subtract(Duration(days: now.weekday - 1));
+        dateFiltered = sortedRecords
+            .where(
+              (r) => r.date.isAfter(
+                DateTime(
+                  start.year,
+                  start.month,
+                  start.day,
+                ).subtract(const Duration(seconds: 1)),
+              ),
+            )
+            .toList();
+        break;
+      case DateFilterType.all:
+        break;
     }
 
-    final filtered = state.allExpenses.where((e) {
-      final key = DateFormat('MMMM yyyy', locale).format(e.date);
-      return key == month;
-    }).toList();
+    // 3. Фильтр по типу
+    List<HistoryExpenseModel> finalFiltered;
+    switch (typeFilter) {
+      case HistoryFilterType.expense:
+        finalFiltered = dateFiltered.where((e) => !e.isIncome).toList();
+        break;
+      case HistoryFilterType.income:
+        finalFiltered = dateFiltered.where((e) => e.isIncome).toList();
+        break;
+      case HistoryFilterType.all:
+        finalFiltered = dateFiltered;
+        break;
+    }
 
-    final total = filtered.fold<double>(0.0, (sum, item) => sum + item.price);
+    // 4. Подсчет баланса (по всем записям)
+    final incomes = sortedRecords
+        .where((e) => e.isIncome)
+        .fold(0.0, (sum, e) => sum + e.price);
+    final expenses = sortedRecords
+        .where((e) => !e.isIncome)
+        .fold(0.0, (sum, e) => sum + e.price);
+
     emit(
       state.copyWith(
-        expenses: filtered,
-        selectedFilter: month,
-        totalSpent: total,
+        allRecords: sortedRecords,
+        filteredRecords: finalFiltered,
+        totalBalance: incomes - expenses,
+        totalIncomes: incomes,
+        totalExpenses: expenses,
+        activeFilter: typeFilter,
+        dateFilter: dateFilter,
+        budgetLimit: currentLimit,
+        isLoading: false,
       ),
     );
   }
 
-  void searchAutocomplete(String query) {
-    if (query.isEmpty) {
-      emit(state.copyWith(autocompleteSuggestions: [], suggestedPrice: 0.0));
-      return;
-    }
-    final matches = state.allExpenses
-        .where((e) => e.productName.toLowerCase().contains(query.toLowerCase()))
-        .map((e) => e.productName)
-        .toSet()
-        .toList();
+  Future<void> addRecord(HistoryExpenseModel record) async {
+    await _repository.saveExpense(record);
+    final updatedRecords = List<HistoryExpenseModel>.from(state.allRecords)
+      ..add(record);
+    _calculateAndEmit(
+      updatedRecords,
+      state.activeFilter,
+      state.dateFilter,
+      currentLimit: state.budgetLimit,
+    );
 
-    double pastPrice = 0.0;
     try {
-      pastPrice = state.allExpenses
-          .firstWhere(
-            (e) => e.productName.toLowerCase() == query.toLowerCase().trim(),
-          )
-          .price;
-    } catch (_) {}
-
-    emit(
-      state.copyWith(
-        autocompleteSuggestions: matches,
-        suggestedPrice: pastPrice,
-      ),
-    );
+      await _repository.syncWithCloud(record);
+      _calculateAndEmit(
+        _repository.getAllExpenses(),
+        state.activeFilter,
+        state.dateFilter,
+        currentLimit: state.budgetLimit,
+      );
+    } catch (e) {
+      print('Sync error: $e');
+    }
   }
 
-  Future<void> addRecord(String name, double price, String locale) async {
-    final newItem = HistoryExpenseModel(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
-      date: DateTime.now(),
-      productName: name,
-      price: price,
+  Future<void> removeRecord(String id) async {
+    await _repository.deleteExpense(id);
+    final updatedRecords = state.allRecords.where((r) => r.id != id).toList();
+    _calculateAndEmit(
+      updatedRecords,
+      state.activeFilter,
+      state.dateFilter,
+      currentLimit: state.budgetLimit,
     );
-    await repository.saveNewExpense(newItem);
-    refreshData(locale: locale);
+    try {
+      await _repository.deleteFromCloud(id);
+    } catch (_) {}
+  }
+
+  Future<void> _syncOfflineRecords() async {
+    final unsynced = _repository
+        .getAllExpenses()
+        .where((r) => !r.isSynced)
+        .toList();
+    for (var record in unsynced) {
+      await _repository.syncWithCloud(record);
+    }
+    _calculateAndEmit(
+      _repository.getAllExpenses(),
+      state.activeFilter,
+      state.dateFilter,
+      currentLimit: state.budgetLimit,
+    );
   }
 }
