@@ -22,9 +22,11 @@ class AnalyticsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Важнейшая связка: Триггерим расчет аналитики каждый раз, когда меняются данные в основном HistoryCubit
-    final historyExpenses = context.watch<HistoryCubit>().state.expenses;
-    context.read<AnalyticsCubit>().calculateAnalytics(historyExpenses);
+    // ИСПРАВЛЕНО: Читаем все записи через актуальное поле allRecords вместо старого expenses
+    final historyRecords = context.watch<HistoryCubit>().state.allRecords;
+
+    // Триггерим расчет аналитики на основе актуального списка
+    context.read<AnalyticsCubit>().calculateAnalytics(historyRecords);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -43,37 +45,43 @@ class AnalyticsView extends StatelessWidget {
       body: BlocBuilder<AnalyticsCubit, AnalyticsState>(
         builder: (context, state) {
           if (state.categoryData.isEmpty) {
-            return const Center(
-              child: Text('Добавьте расходы, чтобы увидеть графики аналитики'),
+            return Center(
+              child: Padding(
+                padding: EdgeInsets.all(24.0),
+                child: Text(
+                  'Добавьте расходы, чтобы увидеть графики аналитики',
+                  textAlign: TextAlign
+                      .center, // ИСПРАВЛЕНО: с Center на TextAlign.center
+                  style: TextStyle(color: Colors.black45, fontSize: 16),
+                ),
+              ),
             );
           }
 
           // Преобразуем сгруппированные данные в сектора PieChartSectionData
           int colorIndex = 0;
-          final List<PieChartSectionData> sections = state.categoryData.entries
-              .map((entry) {
-                final color = _chartColors[colorIndex % _chartColors.length];
-                colorIndex++;
+          final List<PieChartSectionData>
+          sections = state.categoryData.entries.map((entry) {
+            final color = _chartColors[colorIndex % _chartColors.length];
+            colorIndex++;
 
-                final double percentage = state.totalSpent > 0
-                    ? (entry.value / state.totalSpent) * 100
-                    : 0.0;
+            // Рассчитываем процент конкретной категории от общей суммы расходов
+            final double percentage = state.totalSpent > 0
+                ? (entry.value / state.totalSpent) * 100
+                : 0.0;
 
-                return PieChartSectionData(
-                  color: color,
-                  value: entry.value,
-                  title: percentage > 8
-                      ? '${percentage.toStringAsFixed(0)}%'
-                      : '',
-                  radius: 50,
-                  titleStyle: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                );
-              })
-              .toList();
+            return PieChartSectionData(
+              color: color,
+              value: entry.value,
+              title: percentage > 8 ? '${percentage.toStringAsFixed(0)}%' : '',
+              radius: 50,
+              titleStyle: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            );
+          }).toList();
 
           return SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
@@ -101,7 +109,9 @@ class AnalyticsView extends StatelessWidget {
                       const SizedBox(width: 14),
                       Expanded(
                         child: Text(
-                          state.insightMessage,
+                          state.insightMessage.isNotEmpty
+                              ? state.insightMessage
+                              : 'Анализ ваших данных завершен. Продолжайте вносить операции для формирования персональных советов!',
                           style: const TextStyle(
                             color: Color(0xFF1E40AF),
                             fontSize: 14,
@@ -116,7 +126,7 @@ class AnalyticsView extends StatelessWidget {
 
                 const SizedBox(height: 32),
                 const Text(
-                  'Распределение по продуктам',
+                  'Распределение расходов',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -126,7 +136,7 @@ class AnalyticsView extends StatelessWidget {
                 const SizedBox(height: 20),
 
                 // ГРАФИК PIE CHART
-                Container(
+                SizedBox(
                   height: 200,
                   child: PieChart(
                     PieChartData(
@@ -152,6 +162,13 @@ class AnalyticsView extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.01),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -180,7 +197,7 @@ class AnalyticsView extends StatelessWidget {
                               '${entry.value.toStringAsFixed(2)} ₴',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: Colors.black87,
+                                color: Color(0xFF0F172A),
                               ),
                             ),
                           ],

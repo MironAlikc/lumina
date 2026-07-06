@@ -1,53 +1,81 @@
+import 'package:flutter/foundation.dart';
 import '../../data/models/history_expense_model.dart';
 
+enum HistoryFilterType { all, expense, income }
+
+enum DateFilterType { all, today, yesterday, thisWeek }
+
 class HistoryState {
-  final List<HistoryExpenseModel> allExpenses;
-  final List<HistoryExpenseModel> expenses;
-  final List<String> dateFilters;
-  final String selectedFilter;
-  final double totalSpent;
-  final double budgetLimit; // ДОБАВЛЕНО: Лимит бюджета
-  final List<String> autocompleteSuggestions;
-  final double suggestedPrice;
+  final List<HistoryExpenseModel> allRecords;
+  final List<HistoryExpenseModel> filteredRecords;
+  final double totalBalance;
+  final double totalIncomes;
+  final double totalExpenses;
+  final HistoryFilterType activeFilter;
+  final DateFilterType dateFilter;
+  final double budgetLimit;
+  final bool isLoading;
 
   HistoryState({
-    required this.allExpenses,
-    required this.expenses,
-    required this.dateFilters,
-    required this.selectedFilter,
-    required this.totalSpent,
-    required this.budgetLimit, // ДОБАВЛЕНО
-    required this.autocompleteSuggestions,
-    required this.suggestedPrice,
+    this.allRecords = const [],
+    this.filteredRecords = const [],
+    this.totalBalance = 0.0,
+    this.totalIncomes = 0.0,
+    this.totalExpenses = 0.0,
+    this.activeFilter = HistoryFilterType.all,
+    this.dateFilter = DateFilterType.all,
+    this.budgetLimit = 30000.0,
+    this.isLoading = false,
   });
 
-  // Вычисляемое свойство: процент заполнения бюджета от 0.0 до 1.0
-  double get budgetProgress {
-    if (budgetLimit <= 0) return 0.0;
-    final progress = totalSpent / budgetLimit;
-    return progress > 1.0 ? 1.0 : progress;
-  }
-
   HistoryState copyWith({
-    List<HistoryExpenseModel>? allExpenses,
-    List<HistoryExpenseModel>? expenses,
-    List<String>? dateFilters,
-    String? selectedFilter,
-    double? totalSpent,
-    double? budgetLimit, // ДОБАВЛЕНО
-    List<String>? autocompleteSuggestions,
-    double? suggestedPrice,
+    List<HistoryExpenseModel>? allRecords,
+    List<HistoryExpenseModel>? filteredRecords,
+    double? totalBalance,
+    double? totalIncomes,
+    double? totalExpenses,
+    HistoryFilterType? activeFilter,
+    DateFilterType? dateFilter,
+    double? budgetLimit,
+    bool? isLoading,
   }) {
     return HistoryState(
-      allExpenses: allExpenses ?? this.allExpenses,
-      expenses: expenses ?? this.expenses,
-      dateFilters: dateFilters ?? this.dateFilters,
-      selectedFilter: selectedFilter ?? this.selectedFilter,
-      totalSpent: totalSpent ?? this.totalSpent,
-      budgetLimit: budgetLimit ?? this.budgetLimit, // ДОБАВЛЕНО
-      autocompleteSuggestions:
-          autocompleteSuggestions ?? this.autocompleteSuggestions,
-      suggestedPrice: suggestedPrice ?? this.suggestedPrice,
+      allRecords: allRecords ?? this.allRecords,
+      filteredRecords: filteredRecords ?? this.filteredRecords,
+      totalBalance: totalBalance ?? this.totalBalance,
+      totalIncomes: totalIncomes ?? this.totalIncomes,
+      totalExpenses: totalExpenses ?? this.totalExpenses,
+      activeFilter: activeFilter ?? this.activeFilter,
+      dateFilter: dateFilter ?? this.dateFilter,
+      budgetLimit: budgetLimit ?? this.budgetLimit,
+      isLoading: isLoading ?? this.isLoading,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is HistoryState &&
+          listEquals(allRecords, other.allRecords) &&
+          listEquals(filteredRecords, other.filteredRecords) &&
+          totalBalance == other.totalBalance &&
+          totalIncomes == other.totalIncomes &&
+          totalExpenses == other.totalExpenses &&
+          activeFilter == other.activeFilter &&
+          dateFilter == other.dateFilter &&
+          budgetLimit == other.budgetLimit &&
+          isLoading == other.isLoading;
+
+  @override
+  int get hashCode => Object.hash(
+    Object.hashAll(allRecords),
+    Object.hashAll(filteredRecords),
+    totalBalance,
+    totalIncomes,
+    totalExpenses,
+    activeFilter,
+    dateFilter,
+    budgetLimit,
+    isLoading,
+  );
 }
