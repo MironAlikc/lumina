@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 
 class LuminaTheme {
-  // Тот самый благородный мятно-бирюзовый из твоих заметок
   static const Color accentColor = Color(0xFF00B4D8);
   static const Color backgroundColor = Color(0xFFF8FAFC);
   static const Color textColor = Color(0xFF0F172A);
   static const Color subTitleColor = Color(0xFF64748B);
 
+  // Добавлен геттер для соответствия твоему коду
+  static Color get titleColor => textColor;
+
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
       scaffoldBackgroundColor: backgroundColor,
-      fontFamily:
-          'SF Pro Display', // Используем нативный шрифт Apple для презентабельности
-
+      fontFamily: 'SF Pro Display',
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -26,8 +26,6 @@ class LuminaTheme {
           letterSpacing: -0.5,
         ),
       ),
-
-      // Стиль для кастомных текстовых полей (как на твоих скринах)
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: Colors.white,
@@ -41,8 +39,6 @@ class LuminaTheme {
           borderSide: BorderSide.none,
         ),
       ),
-
-      // Глобальный стиль для текста
       textTheme: const TextTheme(
         bodyLarge: TextStyle(color: textColor, fontSize: 16),
         bodyMedium: TextStyle(color: subTitleColor, fontSize: 14),
@@ -50,7 +46,6 @@ class LuminaTheme {
     );
   }
 
-  // Удобный хелпер для создания тех самых "парящих" теней вокруг карточек
   static List<BoxShadow> get premiumShadow => [
     BoxShadow(
       color: Colors.black.withOpacity(0.03),

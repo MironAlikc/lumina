@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lumina/features/history/data/models/history_expense_model.dart';
 import 'package:lumina/features/history/presentation/cubits/history_cubit.dart';
-import 'package:uuid/uuid.dart'; // Добавь пакет uuid в pubspec.yaml
+import 'package:uuid/uuid.dart';
 
 class QuickAddView extends StatefulWidget {
   const QuickAddView({super.key});
@@ -16,18 +15,34 @@ class _QuickAddViewState extends State<QuickAddView> {
   bool _isIncome = false;
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
-  String _selectedCategory = 'food';
+  final String _selectedCategory = 'food';
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _priceController.dispose();
+    super.dispose();
+  }
 
   void _submit() {
-    if (_priceController.text.isEmpty || _nameController.text.isEmpty) return;
+    final price = double.tryParse(_priceController.text);
+    if (_priceController.text.isEmpty ||
+        _nameController.text.isEmpty ||
+        price == null)
+      return;
+
+    // ИСПОЛЬЗУЕМ ENUM TransactionType
+    final TransactionType type = _isIncome
+        ? TransactionType.income
+        : TransactionType.expense;
 
     final newRecord = HistoryExpenseModel(
       id: const Uuid().v4(),
       date: DateTime.now(),
       productName: _nameController.text,
-      price: double.parse(_priceController.text),
+      price: price,
       category: _selectedCategory,
-      type: _isIncome ? 'income' : 'expense',
+      type: type, // Передаем enum, а не строку
       isSynced: false,
     );
 
@@ -39,7 +54,7 @@ class _QuickAddViewState extends State<QuickAddView> {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
         top: 20,
         left: 20,
         right: 20,
@@ -74,16 +89,34 @@ class _QuickAddViewState extends State<QuickAddView> {
           const SizedBox(height: 20),
           TextField(
             controller: _nameController,
-            decoration: const InputDecoration(labelText: 'Название'),
+            decoration: const InputDecoration(
+              labelText: 'Название',
+              border: OutlineInputBorder(),
+            ),
           ),
+          const SizedBox(height: 10),
           TextField(
             controller: _priceController,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Сумма'),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(
+              labelText: 'Сумма',
+              border: OutlineInputBorder(),
+            ),
           ),
           const SizedBox(height: 20),
-          ElevatedButton(onPressed: _submit, child: const Text('Сохранить')),
-          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              onPressed: _submit,
+              style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text('Сохранить', style: TextStyle(fontSize: 16)),
+            ),
+          ),
         ],
       ),
     );
@@ -103,6 +136,14 @@ class _QuickAddViewState extends State<QuickAddView> {
           decoration: BoxDecoration(
             color: isSelected ? Colors.white : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 4,
+                    ),
+                  ]
+                : [],
           ),
           child: Text(
             label,

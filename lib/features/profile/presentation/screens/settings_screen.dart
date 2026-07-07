@@ -6,8 +6,8 @@ import '../../../../presentation/cubits/language/language_cubit.dart';
 import '../../../history/presentation/cubits/history_cubit.dart';
 import '../../../history/presentation/cubits/history_state.dart';
 
-class SettingsView extends StatelessWidget {
-  const SettingsView({super.key});
+class SettingsScreen extends StatelessWidget {
+  const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

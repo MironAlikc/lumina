@@ -3,64 +3,65 @@ import '../../../history/data/models/history_expense_model.dart';
 import 'analytics_state.dart';
 
 class AnalyticsCubit extends Cubit<AnalyticsState> {
-  AnalyticsCubit()
-    : super(
-        AnalyticsState(
-          searchQuery: '',
-          categoryData: {},
-          totalSpent: 0.0,
-          insightMessage: 'Добавьте больше расходов для анализа трендов.',
-        ),
-      );
+  AnalyticsCubit() : super(const AnalyticsState());
 
-  void executeSearch(String query) {
-    emit(state.copyWith(searchQuery: query));
-  }
+  void calculateAnalytics(List<HistoryExpenseModel> records) {
+    try {
+      // Сообщаем UI, что началась загрузка/расчет
+      emit(state.copyWith(isLoading: true, errorMessage: null));
 
-  // Метод пересчета аналитики на основе актуального списка из HistoryCubit
-  void calculateAnalytics(List<HistoryExpenseModel> expenses) {
-    if (expenses.isEmpty) {
-      emit(
-        AnalyticsState(
-          searchQuery: state.searchQuery,
-          categoryData: {},
-          totalSpent: 0.0,
-          insightMessage: 'Нет данных для анализа.',
-        ),
-      );
-      return;
-    }
+      final expenses = records
+          .where((r) => r.type == TransactionType.expense)
+          .toList();
 
-    final double total = expenses.fold(0.0, (sum, item) => sum + item.price);
-
-    // Группируем по названию продуктов (ингредиентов)
-    final Map<String, double> grouped = {};
-    for (var exp in expenses) {
-      grouped[exp.productName] = (grouped[exp.productName] ?? 0.0) + exp.price;
-    }
-
-    // Генерация динамического умного инсайта
-    String insight =
-        'В этом месяце вы распределили бюджет на ${grouped.keys.length} категорий.';
-    if (total > 0) {
-      final topCategory = grouped.entries.fold<MapEntry<String, double>?>(
-        null,
-        (max, e) => max == null || e.value > max.value ? e : max,
-      );
-      if (topCategory != null) {
-        final percent = (topCategory.value / total) * 100;
-        insight =
-            '🔥 Больше всего вы тратите на "${topCategory.key}" (${percent.toStringAsFixed(0)}% от всех затрат). В этом месяце вы сэкономили 12% по сравнению с прошлым!';
+      if (expenses.isEmpty) {
+        emit(
+          state.copyWith(
+            categoryData: {},
+            totalSpent: 0.0,
+            insightMessage: 'Нет данных о расходах.',
+            isLoading: false,
+          ),
+        );
+        return;
       }
-    }
 
-    emit(
-      AnalyticsState(
-        searchQuery: state.searchQuery,
-        categoryData: grouped,
-        totalSpent: total,
-        insightMessage: insight,
-      ),
-    );
+      final double total = expenses.fold(0.0, (sum, item) => sum + item.price);
+
+      final Map<String, double> grouped = {};
+      for (var exp in expenses) {
+        grouped[exp.category] = (grouped[exp.category] ?? 0.0) + exp.price;
+      }
+
+      String insight =
+          'Вы распределили бюджет на ${grouped.keys.length} категорий расходов.';
+      final topEntry = grouped.entries.fold<MapEntry<String, double>?>(
+        null,
+        (max, e) => (max == null || e.value > max.value) ? e : max,
+      );
+
+      if (topEntry != null) {
+        final percent = (topEntry.value / total) * 100;
+        insight =
+            '🔥 Больше всего тратите на "${topEntry.key}" (${percent.toStringAsFixed(0)}% от расходов).';
+      }
+
+      emit(
+        state.copyWith(
+          categoryData: grouped,
+          totalSpent: total,
+          insightMessage: insight,
+          isLoading: false,
+        ),
+      );
+    } catch (e) {
+      // В случае ошибки (например, проблемы с данными) обновляем состояние ошибкой
+      emit(
+        state.copyWith(
+          isLoading: false,
+          errorMessage: 'Не удалось рассчитать аналитику.',
+        ),
+      );
+    }
   }
 }
