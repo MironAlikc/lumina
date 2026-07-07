@@ -1,16 +1,18 @@
-import '../../data/repositories/analytics_repository.dart';
-
 class AnalyticsState {
   final String searchQuery;
-  final Map<String, double> categoryData; // Данные для круговой диаграммы
+  final Map<String, double> categoryData;
   final double totalSpent;
-  final String insightMessage; // Умная аналитика
+  final String insightMessage;
+  final bool isLoading;
+  final String? errorMessage;
 
-  AnalyticsState({
-    required this.searchQuery,
-    required this.categoryData,
-    required this.totalSpent,
-    required this.insightMessage,
+  const AnalyticsState({
+    this.searchQuery = '',
+    this.categoryData = const {},
+    this.totalSpent = 0.0,
+    this.insightMessage = 'Добавьте больше расходов для анализа.',
+    this.isLoading = false,
+    this.errorMessage,
   });
 
   AnalyticsState copyWith({
@@ -18,12 +20,16 @@ class AnalyticsState {
     Map<String, double>? categoryData,
     double? totalSpent,
     String? insightMessage,
+    bool? isLoading,
+    String? errorMessage,
   }) {
     return AnalyticsState(
       searchQuery: searchQuery ?? this.searchQuery,
       categoryData: categoryData ?? this.categoryData,
       totalSpent: totalSpent ?? this.totalSpent,
       insightMessage: insightMessage ?? this.insightMessage,
+      isLoading: isLoading ?? this.isLoading,
+      errorMessage: errorMessage ?? this.errorMessage,
     );
   }
 }
