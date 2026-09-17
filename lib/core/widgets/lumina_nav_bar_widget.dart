@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lumina/core/constants/app_tabs.dart';
+import 'package:lumina/core/theme/lumina_colors.dart';
 import 'package:lumina/core/theme/lumina_theme.dart';
 
 class LuminaNavBarWidget extends StatelessWidget {
@@ -34,17 +35,16 @@ class LuminaNavBarWidget extends StatelessWidget {
             child: Container(
               height: 64,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.90),
+                color: LuminaColors.cardMint.withValues(alpha: 0.90),
                 borderRadius: BorderRadius.circular(32),
                 border: Border.all(
-                  color: Colors.black.withValues(alpha: 0.04),
+                  color: LuminaColors.cardMintBorder.withValues(alpha: 0.8),
                   width: 1.0,
                 ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  // ИСПРАВЛЕНО: Заменили .history на .dashboard
                   _NavBarItem(
                     AppTab.dashboard,
                     Icons.grid_view_rounded,

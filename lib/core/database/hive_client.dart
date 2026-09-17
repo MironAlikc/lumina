@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../../features/history/data/models/history_expense_model.dart';
 
@@ -8,20 +8,17 @@ class HiveClient {
   Future<void> init() async {
     await Hive.initFlutter();
 
-    // 1. Регистрируем адаптеры, если они еще не зарегистрированы
+    // 1. Регистрация адаптеров
     if (!Hive.isAdapterRegistered(0)) {
-      Hive.registerAdapter(TransactionTypeAdapter()); // Адаптер для ENUM
+      Hive.registerAdapter(TransactionTypeAdapter());
     }
     if (!Hive.isAdapterRegistered(1)) {
       Hive.registerAdapter(HistoryExpenseModelAdapter());
     }
 
-    // 2. БЕЗОПАСНОСТЬ: Очистка старой структуры при смене типов
-    // При переходе на Enum лучше сбросить кэш, чтобы не было конфликтов типов данных
-    final boxExists = await Hive.boxExists(boxName);
-    if (boxExists) {
+    // 2. Безопасная миграция данных
+    if (await Hive.boxExists(boxName)) {
       final rawBox = await Hive.openBox(boxName);
-      // Если структура данных устарела, очищаем
       if (rawBox.isNotEmpty && rawBox.values.first is! HistoryExpenseModel) {
         await rawBox.clear();
         debugPrint('🧹 Кэш Hive очищен: структура модели обновлена.');
@@ -29,42 +26,37 @@ class HiveClient {
       await rawBox.close();
     }
 
-    // 3. Открываем строго типизированную коробку
+    // 3. Открытие коробки
     final box = await Hive.openBox<HistoryExpenseModel>(boxName);
 
-    // 4. Заполнение демо-данными (с использованием ENUM)
+    // 4. Демо-данные
     if (box.isEmpty) {
       final demo = [
         HistoryExpenseModel(
           id: '1',
           date: DateTime(2026, 7, 3),
-          productName: 'Зарплата (Аванс)',
+          productName: 'Зарплата',
           price: 45000.0,
-          category: 'Доход',
-          type: TransactionType.income, // Используем ENUM!
+          categoryId: 'cat_salary',
+          categoryName: 'Salary',
+          type: TransactionType.income,
         ),
         HistoryExpenseModel(
           id: '2',
           date: DateTime(2026, 7, 3),
-          productName: 'Супермаркет Сильпо',
+          productName: 'Супермаркет',
           price: 1250.0,
-          category: 'Продукты',
-          type: TransactionType.expense, // Используем ENUM!
+          categoryId: 'cat_food',
+          categoryName: 'Продукты',
+          type: TransactionType.expense,
         ),
         HistoryExpenseModel(
           id: '3',
           date: DateTime(2026, 7, 2),
-          productName: 'Заправка ОККО',
+          productName: 'Заправка',
           price: 2100.0,
-          category: 'Транспорт',
-          type: TransactionType.expense,
-        ),
-        HistoryExpenseModel(
-          id: '4',
-          date: DateTime(2026, 7, 2),
-          productName: 'Ужин в ресторане',
-          price: 850.0,
-          category: 'Кафе',
+          categoryId: 'cat_transport',
+          categoryName: 'Транспорт',
           type: TransactionType.expense,
         ),
       ];

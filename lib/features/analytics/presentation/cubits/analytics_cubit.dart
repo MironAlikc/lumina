@@ -1,25 +1,39 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../history/data/models/history_expense_model.dart';
+import '../../../history/data/models/custom_category_model.dart';
 import 'analytics_state.dart';
 
 class AnalyticsCubit extends Cubit<AnalyticsState> {
-  AnalyticsCubit() : super(const AnalyticsState());
+  AnalyticsCubit() : super(AnalyticsState(selectedDate: DateTime.now()));
 
-  void calculateAnalytics(List<HistoryExpenseModel> records) {
+  void changeDate(
+    DateTime newDate,
+    List<HistoryExpenseModel> records,
+    List<CustomCategory> categories,
+  ) {
+    emit(state.copyWith(selectedDate: newDate));
+    calculateAnalytics(records, categories);
+  }
+
+  void calculateAnalytics(
+    List<HistoryExpenseModel> records,
+    List<CustomCategory> categories,
+  ) {
     try {
-      // Сообщаем UI, что началась загрузка/расчет
       emit(state.copyWith(isLoading: true, errorMessage: null));
 
-      final expenses = records
-          .where((r) => r.type == TransactionType.expense)
-          .toList();
+      final expenses = records.where((r) {
+        if (r.type != TransactionType.expense) return false;
+        return r.date.year == state.selectedDate.year &&
+            r.date.month == state.selectedDate.month;
+      }).toList();
 
       if (expenses.isEmpty) {
         emit(
           state.copyWith(
             categoryData: {},
             totalSpent: 0.0,
-            insightMessage: 'Нет данных о расходах.',
+            insightMessage: 'Нет данных о расходах за этот месяц.',
             isLoading: false,
           ),
         );
@@ -27,20 +41,32 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
       }
 
       final double total = expenses.fold(0.0, (sum, item) => sum + item.price);
-
       final Map<String, double> grouped = {};
+
       for (var exp in expenses) {
-        grouped[exp.category] = (grouped[exp.category] ?? 0.0) + exp.price;
+        final category = categories.firstWhere(
+          (c) => c.id == exp.categoryId,
+          orElse: () => CustomCategory(
+            id: 'unknown',
+            name: 'Другое',
+            iconKey: 'category',
+            colorHex: 0xFF999999,
+            type: 'expense',
+          ),
+        );
+
+        grouped[category.name] = (grouped[category.name] ?? 0.0) + exp.price;
       }
 
       String insight =
           'Вы распределили бюджет на ${grouped.keys.length} категорий расходов.';
+
       final topEntry = grouped.entries.fold<MapEntry<String, double>?>(
         null,
         (max, e) => (max == null || e.value > max.value) ? e : max,
       );
 
-      if (topEntry != null) {
+      if (topEntry != null && total > 0) {
         final percent = (topEntry.value / total) * 100;
         insight =
             '🔥 Больше всего тратите на "${topEntry.key}" (${percent.toStringAsFixed(0)}% от расходов).';
@@ -55,7 +81,6 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
         ),
       );
     } catch (e) {
-      // В случае ошибки (например, проблемы с данными) обновляем состояние ошибкой
       emit(
         state.copyWith(
           isLoading: false,

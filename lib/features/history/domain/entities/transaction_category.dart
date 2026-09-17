@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/localization/lumina_localizations.dart';
+import 'package:lumina/l10n/app_localizations.dart';
 
 enum TransactionCategory {
   food,
@@ -9,25 +9,23 @@ enum TransactionCategory {
   housing,
   income;
 
-  /// Получение локализованного названия категории
-  String getName(LuminaLocalizations loc) {
+  String getName(AppLocalizations loc) {
     switch (this) {
       case TransactionCategory.food:
-        return loc.translate('catFood');
+        return loc.catFood;
       case TransactionCategory.transport:
-        return loc.translate('catTransport');
+        return loc.catTransport;
       case TransactionCategory.shopping:
-        return loc.translate('catShopping');
+        return loc.catShopping;
       case TransactionCategory.entertainment:
-        return loc.translate('catEntertainment');
+        return loc.catEntertainment;
       case TransactionCategory.housing:
-        return loc.translate('catHousing');
+        return loc.catHousing;
       case TransactionCategory.income:
-        return loc.translate('catIncome');
+        return loc.catIncome;
     }
   }
 
-  /// Иконка для категории
   IconData get icon {
     switch (this) {
       case TransactionCategory.food:
@@ -45,21 +43,20 @@ enum TransactionCategory {
     }
   }
 
-  /// Цвет подложки иконки
   Color get color {
     switch (this) {
       case TransactionCategory.food:
-        return const Color(0xFFF59E0B); // Оранжевый
+        return const Color(0xFFF59E0B);
       case TransactionCategory.transport:
-        return const Color(0xFF3B82F6); // Синий
+        return const Color(0xFF3B82F6);
       case TransactionCategory.shopping:
-        return const Color(0xFFEC4899); // Розовый
+        return const Color(0xFFEC4899);
       case TransactionCategory.entertainment:
-        return const Color(0xFF8B5CF6); // Фиолетовый
+        return const Color(0xFF8B5CF6);
       case TransactionCategory.housing:
-        return const Color(0xFFEF4444); // Красный
+        return const Color(0xFFEF4444);
       case TransactionCategory.income:
-        return const Color(0xFF10B981); // Зеленый
+        return const Color(0xFF10B981);
     }
   }
 }

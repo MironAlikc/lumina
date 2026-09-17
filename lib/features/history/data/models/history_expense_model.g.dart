@@ -22,15 +22,16 @@ class HistoryExpenseModelAdapter extends TypeAdapter<HistoryExpenseModel> {
       productName: fields[2] as String,
       price: fields[3] as double,
       isSynced: fields[4] as bool,
-      category: fields[5] as String,
+      categoryId: fields[5] as String,
       type: fields[6] as TransactionType,
+      categoryName: fields[7] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, HistoryExpenseModel obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -42,9 +43,11 @@ class HistoryExpenseModelAdapter extends TypeAdapter<HistoryExpenseModel> {
       ..writeByte(4)
       ..write(obj.isSynced)
       ..writeByte(5)
-      ..write(obj.category)
+      ..write(obj.categoryId)
       ..writeByte(6)
-      ..write(obj.type);
+      ..write(obj.type)
+      ..writeByte(7)
+      ..write(obj.categoryName);
   }
 
   @override

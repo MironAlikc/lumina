@@ -3,7 +3,6 @@ import '../../domain/entities/history_expense.dart';
 
 part 'history_expense_model.g.dart';
 
-// 1. Строгий тип для избежания ошибок в строках
 @HiveType(typeId: 0)
 enum TransactionType {
   @HiveField(0)
@@ -25,9 +24,11 @@ class HistoryExpenseModel extends HiveObject {
   @HiveField(4)
   final bool isSynced;
   @HiveField(5)
-  final String category;
+  final String categoryId;
   @HiveField(6)
   final TransactionType type;
+  @HiveField(7)
+  final String? categoryName;
 
   HistoryExpenseModel({
     required this.id,
@@ -35,8 +36,9 @@ class HistoryExpenseModel extends HiveObject {
     required this.productName,
     required this.price,
     this.isSynced = false,
-    this.category = 'food',
+    required this.categoryId,
     this.type = TransactionType.expense,
+    this.categoryName,
   });
 
   bool get isIncome => type == TransactionType.income;
@@ -47,8 +49,9 @@ class HistoryExpenseModel extends HiveObject {
     String? productName,
     double? price,
     bool? isSynced,
-    String? category,
+    String? categoryId,
     TransactionType? type,
+    String? categoryName,
   }) {
     return HistoryExpenseModel(
       id: id ?? this.id,
@@ -56,8 +59,9 @@ class HistoryExpenseModel extends HiveObject {
       productName: productName ?? this.productName,
       price: price ?? this.price,
       isSynced: isSynced ?? this.isSynced,
-      category: category ?? this.category,
+      categoryId: categoryId ?? this.categoryId,
       type: type ?? this.type,
+      categoryName: categoryName ?? this.categoryName,
     );
   }
 
@@ -66,8 +70,8 @@ class HistoryExpenseModel extends HiveObject {
     date: date,
     productName: productName,
     price: price,
-    category: category,
-    type: type.name, // Превращаем enum в строку для Entity
+    category: categoryId.isNotEmpty ? categoryId : (categoryName ?? ''),
+    type: type.name,
     isSynced: isSynced,
   );
 
@@ -77,7 +81,8 @@ class HistoryExpenseModel extends HiveObject {
         date: entity.date,
         productName: entity.productName,
         price: entity.price,
-        category: entity.category,
+        categoryId: entity.category,
+        categoryName: entity.category,
         type: entity.type == 'income'
             ? TransactionType.income
             : TransactionType.expense,
@@ -91,7 +96,8 @@ class HistoryExpenseModel extends HiveObject {
       'product_name': productName,
       'price': price,
       'date': date.toIso8601String(),
-      'category': category,
+      'category_id': categoryId,
+      'category_name': categoryName ?? '',
       'type': type.name,
     };
   }
@@ -100,10 +106,11 @@ class HistoryExpenseModel extends HiveObject {
     return HistoryExpenseModel(
       id: map['id'] as String,
       date: DateTime.parse(map['date'] as String),
-      productName: map['product_name'] as String,
       price: (map['price'] as num).toDouble(),
+      productName: (map['product_name'] as String?) ?? '',
       isSynced: true,
-      category: (map['category'] as String?) ?? 'food',
+      categoryId: (map['category_id'] as String?) ?? 'default_food',
+      categoryName: map['category_name'] as String?,
       type: (map['type'] as String?) == 'income'
           ? TransactionType.income
           : TransactionType.expense,

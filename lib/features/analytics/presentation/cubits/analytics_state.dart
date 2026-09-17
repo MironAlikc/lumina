@@ -1,35 +1,38 @@
+import 'package:flutter/foundation.dart';
+
+@immutable
 class AnalyticsState {
-  final String searchQuery;
   final Map<String, double> categoryData;
   final double totalSpent;
   final String insightMessage;
+  final DateTime selectedDate;
   final bool isLoading;
   final String? errorMessage;
 
   const AnalyticsState({
-    this.searchQuery = '',
     this.categoryData = const {},
     this.totalSpent = 0.0,
-    this.insightMessage = 'Добавьте больше расходов для анализа.',
+    this.insightMessage = '',
+    required this.selectedDate,
     this.isLoading = false,
     this.errorMessage,
   });
 
   AnalyticsState copyWith({
-    String? searchQuery,
     Map<String, double>? categoryData,
     double? totalSpent,
     String? insightMessage,
+    DateTime? selectedDate,
     bool? isLoading,
     String? errorMessage,
   }) {
     return AnalyticsState(
-      searchQuery: searchQuery ?? this.searchQuery,
       categoryData: categoryData ?? this.categoryData,
       totalSpent: totalSpent ?? this.totalSpent,
       insightMessage: insightMessage ?? this.insightMessage,
+      selectedDate: selectedDate ?? this.selectedDate,
       isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: errorMessage,
     );
   }
 }

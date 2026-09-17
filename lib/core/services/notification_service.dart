@@ -1,7 +1,6 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class NotificationService {
-  // Синглтон для удобного доступа к сервису из любой фичи
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
   NotificationService._internal();
@@ -10,11 +9,9 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   Future<void> initNotification() async {
-    // Настройка иконки для Android (использует дефолтную иконку приложения)
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    // Настройка разрешений для iOS
     const DarwinInitializationSettings initializationSettingsDarwin =
         DarwinInitializationSettings(
           requestAlertPermission: true,
@@ -28,16 +25,12 @@ class NotificationService {
           iOS: initializationSettingsDarwin,
         );
 
-    // Для версии ^17.2.2 настройки передаются ПЕРВЫМ ПОЗИЦИОННЫМ аргументом
     await _notificationsPlugin.initialize(
       initializationSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse response) {
-        // Здесь можно обработать нажатие на уведомление, если потребуется
-      },
+      onDidReceiveNotificationResponse: (NotificationResponse response) {},
     );
   }
 
-  // Метод для быстрой проверки или отправки тестового уведомления
   Future<void> showNotification({
     required int id,
     required String title,
@@ -59,7 +52,6 @@ class NotificationService {
       iOS: iOSDetails,
     );
 
-    // Для версии ^17.2.2 аргументы передаются позиционно: id, title, body, notificationDetails
     await _notificationsPlugin.show(id, title, body, platformDetails);
   }
 }
