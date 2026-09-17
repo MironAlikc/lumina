@@ -1,98 +1,75 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive/hive.dart';
+import 'package:lumina/features/history/presentation/cubits/categories_state.dart';
 import '../../data/models/custom_category_model.dart';
 
-// --- СОСТОЯНИЯ КУБИТА (States) ---
-
-abstract class CategoriesState {
-  const CategoriesState();
-}
-
-/// Состояние первоначальной загрузки данных из Hive
-class CategoriesLoading extends CategoriesState {
-  const CategoriesLoading();
-}
-
-/// Состояние, когда список категорий успешно считан и готов к отображению в UI
-class CategoriesLoaded extends CategoriesState {
-  final List<CustomCategory> categories;
-
-  const CategoriesLoaded(this.categories);
-}
-
-/// Состояние на случай непредвиденных ошибок при работе с базой данных
-class CategoriesError extends CategoriesState {
-  final String message;
-
-  const CategoriesError(this.message);
-}
-
-// --- САМ КУБИТ (Cubit) ---
-
 class CategoriesCubit extends Cubit<CategoriesState> {
-  CategoriesCubit() : super(const CategoriesLoading());
+  CategoriesCubit() : super(CategoriesLoading()) {
+    loadCategories();
+  }
 
-  /// Удобный геттер для быстрого доступа к открытому в main.dart боксу Hive
   Box<CustomCategory> get _box => Hive.box<CustomCategory>('categories_box');
 
-  /// Загружает категории из локального хранилища Hive.
-  /// Если приложение запущено впервые и бокс пуст, наполняет его базовыми категориями.
+  /// Вспомогательный метод для форматирования названия: первая буква заглавная, остальные без изменений
+  String _formatCategoryName(String rawName) {
+    final trimmed = rawName.trim();
+    if (trimmed.isEmpty) return trimmed;
+    return trimmed[0].toUpperCase() + trimmed.substring(1);
+  }
+
+  /// Загрузка категорий с инициализацией дефолтных значений при пустой базе
   Future<void> loadCategories() async {
     try {
-      emit(const CategoriesLoading());
+      emit(CategoriesLoading());
 
-      // Проверяем, если бокс абсолютно пустой — создаем базовый набор
       if (_box.isEmpty) {
         final defaultCategories = [
+          // Расходы
           CustomCategory(
-            id: 'default_food',
-            name: 'food',
+            id: 'cat_food',
+            name: 'Food',
             iconKey: 'food',
-            colorHex: 0xFFFF9F43, // Оранжевый
+            colorHex: 0xFFFF9F43,
             type: 'expense',
           ),
           CustomCategory(
-            id: 'default_transport',
-            name: 'transport',
+            id: 'cat_transport',
+            name: 'Transport',
             iconKey: 'transport',
-            colorHex: 0xFF3B82F6, // Синий
+            colorHex: 0xFF3B82F6,
             type: 'expense',
           ),
           CustomCategory(
-            id: 'default_shopping',
-            name: 'shopping',
+            id: 'cat_shopping',
+            name: 'Shopping',
             iconKey: 'shopping',
-            colorHex: 0xFFFF4757, // Красный
+            colorHex: 0xFFFF4757,
             type: 'expense',
           ),
+          // Доход (Приход)
           CustomCategory(
-            id: 'default_entertainment',
-            name: 'entertainment',
-            iconKey: 'entertainment',
-            colorHex: 0xFF9B5DE5, // Фиолетовый
-            type: 'expense',
+            id: 'cat_salary',
+            name: 'Salary',
+            iconKey: 'wallet',
+            colorHex: 0xFF2ECC71,
+            type: 'income',
           ),
         ];
-
-        // Сохраняем все дефолтные категории в локальную БД
-        for (var category in defaultCategories) {
-          await _box.put(category.id, category);
+        for (var cat in defaultCategories) {
+          await _box.put(cat.id, cat);
         }
       }
 
-      // Получаем все сохраненные объекты, преобразуем в List и отдаем в UI
-      final List<CustomCategory> loadedList = _box.values.toList();
-      emit(CategoriesLoaded(loadedList));
+      final list = _box.values.toList()
+        ..sort((a, b) => a.name.compareTo(b.name));
+
+      emit(CategoriesLoaded(list));
     } catch (e) {
       emit(CategoriesError('Не удалось загрузить категории: ${e.toString()}'));
     }
   }
 
-  /// Добавляет новую кастомную категорию, созданную пользователем из UI.
-  /// [name] — Имя категории (или ключ локализации).
-  /// [iconKey] — Строковый идентификатор иконки ('health', 'education' и т.д.).
-  /// [colorHex] — Числовое представление цвета (например, 0xFF10B981).
-  /// [type] — Тип транзакции: 'expense' (расход) или 'income' (доход).
+  /// Добавление новой категории с авто-форматированием имени
   Future<void> addCategory({
     required String name,
     required String iconKey,
@@ -100,34 +77,57 @@ class CategoriesCubit extends Cubit<CategoriesState> {
     required String type,
   }) async {
     try {
-      // Генерируем уникальный ID на основе текущего штампа времени
-      final String uniqueId = DateTime.now().millisecondsSinceEpoch.toString();
+      final formattedName = _formatCategoryName(name);
+      final String id = 'cat_${DateTime.now().millisecondsSinceEpoch}';
 
       final newCategory = CustomCategory(
-        id: uniqueId,
-        name: name,
+        id: id,
+        name: formattedName,
         iconKey: iconKey,
         colorHex: colorHex,
         type: type,
       );
 
-      // Записываем объект в Hive
-      await _box.put(uniqueId, newCategory);
-
-      // Информируем UI об успешном обновлении списка данных
+      await _box.put(id, newCategory);
       await loadCategories();
     } catch (e) {
-      emit(CategoriesError('Не удалось создать категорию: ${e.toString()}'));
+      emit(CategoriesError('Ошибка добавления категории: ${e.toString()}'));
     }
   }
 
-  /// Дополнительный метод: позволяет удалить категорию по её ID, если это необходимо
+  /// Обновление существующей категории
+  Future<void> updateCategory({
+    required String id,
+    required String name,
+    required String iconKey,
+    required int colorHex,
+    required String type,
+  }) async {
+    try {
+      final formattedName = _formatCategoryName(name);
+
+      final updatedCategory = CustomCategory(
+        id: id,
+        name: formattedName,
+        iconKey: iconKey,
+        colorHex: colorHex,
+        type: type,
+      );
+
+      await _box.put(id, updatedCategory);
+      await loadCategories();
+    } catch (e) {
+      emit(CategoriesError('Ошибка обновления категории: ${e.toString()}'));
+    }
+  }
+
+  /// Удаление категории по ID
   Future<void> deleteCategory(String id) async {
     try {
       await _box.delete(id);
       await loadCategories();
     } catch (e) {
-      emit(CategoriesError('Не удалось удалить категорию: ${e.toString()}'));
+      emit(CategoriesError('Ошибка удаления категории: ${e.toString()}'));
     }
   }
 }

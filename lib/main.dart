@@ -6,15 +6,15 @@ import 'package:lumina/core/services/notification_service.dart';
 import 'package:lumina/core/database/hive_client.dart';
 import 'package:lumina/core/di/injection_container.dart';
 import 'package:lumina/features/history/data/models/custom_category_model.dart';
+import 'package:lumina/features/history/data/models/goal_expense_model.dart';
+import 'package:lumina/features/history/data/models/budget_model.dart';
 import 'package:lumina/main_app.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Инициализация DI
   await initDependencies();
 
-  // Инициализация локализации и БД
   await Future.wait([
     initializeDateFormatting('uk'),
     initializeDateFormatting('ru'),
@@ -22,8 +22,8 @@ void main() async {
     HiveClient().init(),
   ]);
 
-  Hive.registerAdapter(CustomCategoryAdapter());
-  await Hive.openBox<CustomCategory>('categories_box');
+  _registerHiveAdapters();
+  await _openHiveBoxes();
 
   await Supabase.initialize(
     url: 'https://xdeczbkdzvugrjqsgsix.supabase.co',
@@ -33,4 +33,33 @@ void main() async {
   await NotificationService().initNotification();
 
   runApp(const LuminaApp());
+}
+
+/// Регистрация адаптеров Hive без дублирования проверок
+void _registerHiveAdapters() {
+  if (!Hive.isAdapterRegistered(2)) {
+    Hive.registerAdapter(CustomCategoryAdapter());
+  }
+  if (!Hive.isAdapterRegistered(4)) {
+    Hive.registerAdapter(GoalExpenseModelAdapter());
+  }
+  if (!Hive.isAdapterRegistered(5)) {
+    Hive.registerAdapter(BudgetModelAdapter());
+  }
+}
+
+/// Безопасное открытие боксов Hive с обработкой повреждений
+Future<void> _openHiveBoxes() async {
+  await _openBoxSafely<CustomCategory>('categories_box');
+  await _openBoxSafely<GoalExpenseModel>('savings_goals_box');
+  await _openBoxSafely<BudgetModel>('budgets_box');
+}
+
+Future<void> _openBoxSafely<T>(String boxName) async {
+  try {
+    await Hive.openBox<T>(boxName);
+  } catch (_) {
+    await Hive.deleteBoxFromDisk(boxName);
+    await Hive.openBox<T>(boxName);
+  }
 }

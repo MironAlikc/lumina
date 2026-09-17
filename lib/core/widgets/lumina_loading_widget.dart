@@ -37,7 +37,7 @@ class _LuminaLoadingWidgetState extends State<LuminaLoadingWidget>
           margin: const EdgeInsets.only(bottom: 12),
           height: 72,
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Row(

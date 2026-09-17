@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:lumina/features/history/data/models/history_expense_model.dart';
+import 'package:lumina/features/history/domain/entities/history_expense.dart';
 import 'package:lumina/features/history/presentation/cubits/history_cubit.dart';
+import 'package:lumina/features/history/presentation/cubits/categories_cubit.dart';
+import 'package:lumina/features/history/presentation/cubits/categories_state.dart';
 import 'package:uuid/uuid.dart';
 
 class QuickAddView extends StatefulWidget {
@@ -15,7 +17,7 @@ class _QuickAddViewState extends State<QuickAddView> {
   bool _isIncome = false;
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
-  final String _selectedCategory = 'food';
+  String? _selectedCategoryId;
 
   @override
   void dispose() {
@@ -25,29 +27,30 @@ class _QuickAddViewState extends State<QuickAddView> {
   }
 
   void _submit() {
-    final price = double.tryParse(_priceController.text);
+    final price = double.tryParse(_priceController.text.replaceAll(',', '.'));
     if (_priceController.text.isEmpty ||
         _nameController.text.isEmpty ||
-        price == null)
+        price == null ||
+        _selectedCategoryId == null) {
       return;
+    }
 
-    // ИСПОЛЬЗУЕМ ENUM TransactionType
-    final TransactionType type = _isIncome
-        ? TransactionType.income
-        : TransactionType.expense;
+    final String type = _isIncome ? 'income' : 'expense';
 
-    final newRecord = HistoryExpenseModel(
+    final newRecord = HistoryExpense(
       id: const Uuid().v4(),
       date: DateTime.now(),
-      productName: _nameController.text,
+      productName: _nameController.text.trim(),
       price: price,
-      category: _selectedCategory,
-      type: type, // Передаем enum, а не строку
+      category: _selectedCategoryId!,
+      type: type,
       isSynced: false,
     );
 
     context.read<HistoryCubit>().addRecord(newRecord);
-    Navigator.pop(context);
+    if (mounted) {
+      Navigator.pop(context);
+    }
   }
 
   @override
@@ -62,7 +65,6 @@ class _QuickAddViewState extends State<QuickAddView> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Переключатель Доход/Расход
           Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
@@ -72,21 +74,43 @@ class _QuickAddViewState extends State<QuickAddView> {
             child: Row(
               children: [
                 _buildTab(
-                  'Расход',
-                  !_isIncome,
-                  const Color(0xFFEF4444),
-                  () => setState(() => _isIncome = false),
+                  label: 'Расход',
+                  isSelected: !_isIncome,
+                  activeColor: const Color(0xFFEF4444),
+                  onTap: () => setState(() => _isIncome = false),
                 ),
                 _buildTab(
-                  'Доход',
-                  _isIncome,
-                  const Color(0xFF10B981),
-                  () => setState(() => _isIncome = true),
+                  label: 'Доход',
+                  isSelected: _isIncome,
+                  activeColor: const Color(0xFF10B981),
+                  onTap: () => setState(() => _isIncome = true),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 20),
+          BlocBuilder<CategoriesCubit, CategoriesState>(
+            builder: (context, state) {
+              if (state is CategoriesLoaded) {
+                return DropdownButtonFormField<String>(
+                  value: _selectedCategoryId,
+                  hint: const Text('Выберите категорию'),
+                  items: state.categories.map((cat) {
+                    return DropdownMenuItem(
+                      value: cat.id,
+                      child: Text(cat.name),
+                    );
+                  }).toList(),
+                  onChanged: (val) => setState(() => _selectedCategoryId = val),
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                  ),
+                );
+              }
+              return const Center(child: CircularProgressIndicator());
+            },
+          ),
+          const SizedBox(height: 10),
           TextField(
             controller: _nameController,
             decoration: const InputDecoration(
@@ -122,12 +146,12 @@ class _QuickAddViewState extends State<QuickAddView> {
     );
   }
 
-  Widget _buildTab(
-    String label,
-    bool isSelected,
-    Color activeColor,
-    VoidCallback onTap,
-  ) {
+  Widget _buildTab({
+    required String label,
+    required bool isSelected,
+    required Color activeColor,
+    required VoidCallback onTap,
+  }) {
     return Expanded(
       child: GestureDetector(
         onTap: onTap,

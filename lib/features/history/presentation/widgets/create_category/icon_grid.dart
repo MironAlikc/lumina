@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:lumina/core/theme/lumina_theme.dart';
+import 'package:lumina/core/theme/lumina_colors.dart';
+import 'package:lumina/core/theme/lumina_dimensions.dart';
 
 class IconGrid extends StatelessWidget {
   final String selectedIcon;
@@ -37,11 +38,11 @@ class IconGrid extends StatelessWidget {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w700,
-            color: LuminaTheme.subTitleColor,
+            color: LuminaColors.textSecondary,
             letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: LuminaDimensions.paddingS),
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -91,22 +92,22 @@ class _IconItem extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
-          color: isSelected ? activeColor : Colors.white,
+          color: isSelected ? activeColor : LuminaColors.surface,
           shape: BoxShape.circle,
           border: Border.all(
-            color: isSelected ? Colors.transparent : const Color(0xFFF1F5F9),
+            color: isSelected ? Colors.transparent : LuminaColors.border,
             width: 1.5,
           ),
           boxShadow: [
             if (isSelected)
               BoxShadow(
-                color: activeColor.withOpacity(0.25),
+                color: activeColor.withValues(alpha: 0.3),
                 blurRadius: 8,
                 offset: const Offset(0, 3),
               )
             else
               BoxShadow(
-                color: Colors.black.withOpacity(0.01),
+                color: Colors.black.withValues(alpha: 0.02),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -114,7 +115,7 @@ class _IconItem extends StatelessWidget {
         ),
         child: Icon(
           iconData,
-          color: isSelected ? Colors.white : const Color(0xFF475569),
+          color: isSelected ? Colors.white : LuminaColors.textSecondary,
           size: 22,
         ),
       ),

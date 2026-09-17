@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lumina/features/analytics/presentation/screens/analytics_screen.dart';
 import 'package:lumina/features/history/presentation/screens/dashboard_screen.dart';
+import 'package:lumina/features/history/presentation/screens/history_screen.dart';
 import 'package:lumina/features/history/presentation/screens/add_transaction_screen.dart';
+import 'package:lumina/features/history/presentation/screens/goals_screen.dart';
+import 'package:lumina/features/history/presentation/screens/budgets_screen.dart';
 import 'package:lumina/features/profile/presentation/screens/settings_screen.dart';
 import 'package:lumina/features/shell/presentation/screens/main_shell_screen.dart';
 
@@ -13,7 +16,6 @@ final GlobalKey<NavigatorState> _shellNavigatorKey =
 final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/dashboard',
-  // Добавляем debugLogDiagnostics для того, чтобы видеть ошибки навигации в консоли
   debugLogDiagnostics: true,
   routes: [
     ShellRoute(
@@ -36,6 +38,30 @@ final GoRouter appRouter = GoRouter(
           builder: (context, state) => const SettingsScreen(),
         ),
       ],
+    ),
+    GoRoute(
+      name: 'history',
+      path: '/history',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const HistoryScreen(),
+    ),
+    GoRoute(
+      name: 'goals',
+      path: '/goals',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const GoalsScreen(),
+    ),
+    GoRoute(
+      name: 'budgets',
+      path: '/budgets',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        return BudgetsScreen(
+          categories: extra?['categories'] ?? [],
+          allRecords: extra?['allRecords'] ?? [],
+        );
+      },
     ),
     GoRoute(
       name: 'add-transaction',
