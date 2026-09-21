@@ -47,8 +47,11 @@ class MonthlyMatrixWidget extends StatelessWidget {
     final dayRecords = records.where((r) => r.date.day == day).toList();
     dayRecords.sort((a, b) => b.date.compareTo(a.date));
 
+    // Единственная точка поиска категории по id — то же самое, что и
+    // остальные виджеты (TransactionTile, RecentTransactionsList): имя и
+    // иконка берутся из CustomCategory, а не из полей модели транзакции.
     final Map<String, CustomCategory> categoryMap = {
-      for (var cat in categories) ...{cat.id: cat, cat.name: cat},
+      for (var cat in categories) cat.id: cat,
     };
 
     showModalBottomSheet(
@@ -97,7 +100,6 @@ class MonthlyMatrixWidget extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          // DateFormat сам подставит нужный падеж для языка
                           DateFormat(
                             'd MMMM y',
                             locale,
@@ -149,14 +151,19 @@ class MonthlyMatrixWidget extends StatelessWidget {
                                   const SizedBox(height: 8),
                               itemBuilder: (context, index) {
                                 final record = dayRecords[index];
-                                final catKey = _categoryKeyOf(record);
-                                final category = categoryMap[catKey];
+                                final category = categoryMap[record.categoryId];
 
                                 final Color catColor =
                                     category?.color ?? LuminaColors.primary;
                                 final IconData catIcon =
                                     category?.icon ??
                                     Icons.receipt_long_rounded;
+                                // Имя категории всегда через lookup по id —
+                                // categoryName в модели больше не является
+                                // источником истины (см. fromEntity).
+                                final String categoryLabel =
+                                    category?.localizedName(loc) ??
+                                    loc.otherCategory;
 
                                 return Container(
                                   padding: const EdgeInsets.all(12),
@@ -192,9 +199,7 @@ class MonthlyMatrixWidget extends StatelessWidget {
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              record.categoryName ??
-                                                  category?.name ??
-                                                  '',
+                                              categoryLabel,
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 14,
@@ -360,7 +365,7 @@ class MonthlyMatrixWidget extends StatelessWidget {
                                 const SizedBox(width: 5),
                                 Flexible(
                                   child: Text(
-                                    cat.name,
+                                    cat.localizedName(loc),
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
@@ -470,9 +475,7 @@ class MonthlyMatrixWidget extends StatelessWidget {
                               ),
                               ...categories.map((cat) {
                                 final amount =
-                                    (dailyCategoryTotals[day]?[cat.id]) ??
-                                    (dailyCategoryTotals[day]?[cat.name]) ??
-                                    0.0;
+                                    dailyCategoryTotals[day]?[cat.id] ?? 0.0;
 
                                 return SizedBox(
                                   width: columnWidth,
@@ -540,10 +543,7 @@ class MonthlyMatrixWidget extends StatelessWidget {
                       ),
                     ),
                     ...categories.map((cat) {
-                      final catTotal =
-                          (categoryMonthTotals[cat.id]) ??
-                          (categoryMonthTotals[cat.name]) ??
-                          0.0;
+                      final catTotal = categoryMonthTotals[cat.id] ?? 0.0;
 
                       return SizedBox(
                         width: columnWidth,

@@ -7,20 +7,22 @@ import 'package:lumina/features/history/data/models/history_expense_model.dart';
 import 'package:lumina/features/history/presentation/cubits/categories_cubit.dart';
 import 'package:lumina/features/history/presentation/cubits/categories_state.dart';
 import 'package:lumina/features/history/presentation/cubits/history_state.dart';
+import 'package:lumina/l10n/app_localizations.dart';
 import 'package:lumina/presentation/cubits/currency/currency_cubit.dart';
 
 class RecentTransactionsList extends StatelessWidget {
-  final HistoryState state;
-  final int limit;
-
   const RecentTransactionsList({
     super.key,
     required this.state,
     this.limit = 5,
   });
 
+  final HistoryState state;
+  final int limit;
+
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
     final records = [...state.filteredRecords]
       ..sort((a, b) => b.date.compareTo(a.date));
     final items = records.take(limit).toList();
@@ -37,7 +39,8 @@ class RecentTransactionsList extends StatelessWidget {
           ),
           child: Center(
             child: Text(
-              'Пока нет транзакций — добавьте первую',
+              loc.noTransactionsYet,
+              textAlign: TextAlign.center,
               style: TextStyle(
                 color: LuminaTheme.subTitleColor,
                 fontSize: 14,
@@ -50,7 +53,7 @@ class RecentTransactionsList extends StatelessWidget {
     }
 
     final catState = context.watch<CategoriesCubit>().state;
-    final List<CustomCategory> categories = catState is CategoriesLoaded
+    final categories = catState is CategoriesLoaded
         ? catState.categories
         : const <CustomCategory>[];
     final currencySymbol = context.watch<CurrencyCubit>().state.symbol;
@@ -66,13 +69,11 @@ class RecentTransactionsList extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       sliver: SliverList.separated(
         itemCount: items.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        separatorBuilder: (_, _) => const SizedBox(height: 8),
         itemBuilder: (context, index) {
           final entity = items[index];
-          final model = HistoryExpenseModel.fromEntity(entity);
-
           return TransactionTile(
-            record: model,
+            record: HistoryExpenseModel.fromEntity(entity),
             category: findCategory(entity.category),
             currencySymbol: currencySymbol,
           );

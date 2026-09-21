@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:lumina/core/theme/lumina_colors.dart';
 import 'package:lumina/core/theme/lumina_theme.dart';
 import 'package:lumina/features/history/data/models/custom_category_model.dart';
 import 'package:lumina/features/history/data/models/history_expense_model.dart';
 import 'package:lumina/l10n/app_localizations.dart';
 
 class TransactionTile extends StatelessWidget {
-  final HistoryExpenseModel record;
-  final CustomCategory? category;
-  final String currencySymbol;
-  final VoidCallback? onEdit;
-  final VoidCallback? onDelete;
-
   const TransactionTile({
     super.key,
     required this.record,
@@ -20,25 +16,35 @@ class TransactionTile extends StatelessWidget {
     this.onDelete,
   });
 
+  final HistoryExpenseModel record;
+  final CustomCategory? category;
+  final String currencySymbol;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).toString();
     final isIncome = record.type == TransactionType.income;
 
-    final String displayName = record.productName.isNotEmpty
+    final categoryLabel = category?.localizedName(loc);
+    final displayName = record.productName.isNotEmpty
         ? record.productName
-        : (record.categoryName?.isNotEmpty == true
-              ? record.categoryName!
-              : loc.defaultTransactionName);
+        : (categoryLabel ??
+              (record.categoryName?.isNotEmpty == true
+                  ? record.categoryName!
+                  : loc.defaultTransactionName));
 
-    final Color amountColor = isIncome
-        ? const Color(0xFF34D399)
-        : const Color(0xFFF87171);
+    final hasTime = record.date.hour != 0 || record.date.minute != 0;
+    final dateLabel = DateFormat(
+      hasTime ? 'd MMM, HH:mm' : 'd MMM y',
+      locale,
+    ).format(record.date);
 
-    final Color iconColor = category?.color ?? LuminaTheme.accentColor;
-    final IconData iconData = category?.icon ?? Icons.receipt_long_rounded;
-
-    final bool hasActions = onEdit != null || onDelete != null;
+    final amountColor = isIncome ? LuminaColors.success : LuminaColors.error;
+    final iconColor = category?.color ?? LuminaTheme.accentColor;
+    final hasActions = onEdit != null || onDelete != null;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -56,7 +62,11 @@ class TransactionTile extends StatelessWidget {
               color: iconColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(iconData, color: iconColor, size: 20),
+            child: Icon(
+              category?.icon ?? Icons.receipt_long_rounded,
+              color: iconColor,
+              size: 20,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -75,8 +85,11 @@ class TransactionTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${record.date.day.toString().padLeft(2, '0')}.${record.date.month.toString().padLeft(2, '0')}.${record.date.year}  '
-                  '${record.date.hour.toString().padLeft(2, '0')}:${record.date.minute.toString().padLeft(2, '0')}',
+                  categoryLabel != null && categoryLabel != displayName
+                      ? '$categoryLabel · $dateLabel'
+                      : dateLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 12,
                     color: LuminaTheme.subTitleColor,

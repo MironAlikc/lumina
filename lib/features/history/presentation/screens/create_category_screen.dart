@@ -11,47 +11,29 @@ import 'package:lumina/features/history/presentation/widgets/create_category/ico
 import 'package:lumina/l10n/app_localizations.dart';
 
 class CreateCategoryScreen extends StatefulWidget {
-  const CreateCategoryScreen({super.key});
+  const CreateCategoryScreen({super.key, this.initialType = 'expense'});
+
+  final String initialType;
 
   @override
   State<CreateCategoryScreen> createState() => _CreateCategoryScreenState();
 }
 
 class _CreateCategoryScreenState extends State<CreateCategoryScreen> {
-  final TextEditingController _nameController = TextEditingController();
-  int _selectedColor = 0xFF00B4D8;
-  String _selectedIcon = 'health';
-  String _selectedType = 'expense';
+  final _nameController = TextEditingController();
+  late String _selectedType;
+  var _selectedColor = 0xFF00B4D8;
+  var _selectedIcon = 'health';
   String? _errorMessage;
+  var _saving = false;
 
-  void _handleSave(AppLocalizations loc) {
-    final rawName = _nameController.text.trim();
-    if (rawName.isEmpty) return;
-
-    final catState = context.read<CategoriesCubit>().state;
-    if (catState is CategoriesLoaded) {
-      final nameLower = rawName.toLowerCase();
-      final exists = catState.categories.any(
-        (c) => c.name.trim().toLowerCase() == nameLower,
-      );
-
-      if (exists) {
-        HapticFeedback.heavyImpact();
-        setState(() {
-          _errorMessage = loc.categoryAlreadyExists;
-        });
-        return;
-      }
-    }
-
-    HapticFeedback.lightImpact();
-    context.read<CategoriesCubit>().addCategory(
-      name: rawName,
-      iconKey: _selectedIcon,
-      colorHex: _selectedColor,
-      type: _selectedType,
-    );
-    Navigator.pop(context);
+  @override
+  void initState() {
+    super.initState();
+    _selectedType = widget.initialType;
+    _nameController.addListener(() {
+      if (_errorMessage != null) setState(() => _errorMessage = null);
+    });
   }
 
   @override
@@ -60,13 +42,89 @@ class _CreateCategoryScreenState extends State<CreateCategoryScreen> {
     super.dispose();
   }
 
+  Future<void> _handleSave() async {
+    if (_saving) return;
+    final loc = AppLocalizations.of(context)!;
+    final rawName = _nameController.text.trim();
+
+    if (rawName.isEmpty) {
+      HapticFeedback.heavyImpact();
+      setState(() => _errorMessage = loc.amountRequired);
+      return;
+    }
+
+    final catState = context.read<CategoriesCubit>().state;
+    if (catState is CategoriesLoaded) {
+      final nameLower = rawName.toLowerCase();
+      final exists = catState.categories.any((c) {
+        return c.name.trim().toLowerCase() == nameLower ||
+            c.localizedName(loc).toLowerCase() == nameLower;
+      });
+      if (exists) {
+        HapticFeedback.heavyImpact();
+        setState(() => _errorMessage = loc.categoryAlreadyExists);
+        return;
+      }
+    }
+
+    setState(() => _saving = true);
+    HapticFeedback.lightImpact();
+    await context.read<CategoriesCubit>().addCategory(
+      name: rawName,
+      iconKey: _selectedIcon,
+      colorHex: _selectedColor,
+      type: _selectedType,
+    );
+    if (mounted) Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: LuminaColors.background,
-      appBar: _buildAppBar(context, loc),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        title: Text(
+          loc.newCategory,
+          style: const TextStyle(
+            color: LuminaColors.textMain,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: LuminaColors.textMain,
+            size: 20,
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: [
+          TextButton(
+            onPressed: _saving ? null : _handleSave,
+            child: _saving
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(
+                    loc.create,
+                    style: const TextStyle(
+                      color: LuminaColors.accent,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+          ),
+          const SizedBox(width: LuminaDimensions.paddingS),
+        ],
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.all(LuminaDimensions.paddingXL),
@@ -117,88 +175,24 @@ class _CreateCategoryScreenState extends State<CreateCategoryScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _selectedType = 'expense'),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: _selectedType == 'expense'
-                              ? LuminaColors.primary
-                              : Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: _selectedType == 'expense'
-                              ? [
-                                  BoxShadow(
-                                    color: LuminaColors.primary.withValues(
-                                      alpha: 0.3,
-                                    ),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 3),
-                                  ),
-                                ]
-                              : [],
-                          border: Border.all(
-                            color: _selectedType == 'expense'
-                                ? LuminaColors.primary
-                                : LuminaColors.border,
-                          ),
-                        ),
-                        child: Text(
-                          loc.expense,
-                          style: TextStyle(
-                            color: _selectedType == 'expense'
-                                ? Colors.white
-                                : LuminaColors.textSecondary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
+                    child: _TypeCard(
+                      label: loc.expense,
+                      selected: _selectedType == 'expense',
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        setState(() => _selectedType = 'expense');
+                      },
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _selectedType = 'income'),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: _selectedType == 'income'
-                              ? LuminaColors.primary
-                              : Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: _selectedType == 'income'
-                              ? [
-                                  BoxShadow(
-                                    color: LuminaColors.primary.withValues(
-                                      alpha: 0.3,
-                                    ),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 3),
-                                  ),
-                                ]
-                              : [],
-                          border: Border.all(
-                            color: _selectedType == 'income'
-                                ? LuminaColors.primary
-                                : LuminaColors.border,
-                          ),
-                        ),
-                        child: Text(
-                          loc.incomeType,
-                          style: TextStyle(
-                            color: _selectedType == 'income'
-                                ? Colors.white
-                                : LuminaColors.textSecondary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
+                    child: _TypeCard(
+                      label: loc.incomeType,
+                      selected: _selectedType == 'income',
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        setState(() => _selectedType = 'income');
+                      },
                     ),
                   ),
                 ],
@@ -222,42 +216,52 @@ class _CreateCategoryScreenState extends State<CreateCategoryScreen> {
       ),
     );
   }
+}
 
-  PreferredSizeWidget _buildAppBar(BuildContext context, AppLocalizations loc) {
-    return AppBar(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      centerTitle: true,
-      title: Text(
-        loc.newCategory,
-        style: const TextStyle(
-          color: LuminaColors.textMain,
-          fontWeight: FontWeight.bold,
-          fontSize: 18,
+class _TypeCard extends StatelessWidget {
+  const _TypeCard({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected ? LuminaColors.primary : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected ? LuminaColors.primary : LuminaColors.border,
+          ),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: LuminaColors.primary.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ]
+              : null,
         ),
-      ),
-      leading: IconButton(
-        icon: const Icon(
-          Icons.arrow_back_ios_new_rounded,
-          color: LuminaColors.textMain,
-          size: 20,
-        ),
-        onPressed: () => Navigator.pop(context),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => _handleSave(loc),
-          child: Text(
-            loc.create,
-            style: const TextStyle(
-              color: LuminaColors.accent,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : LuminaColors.textSecondary,
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
           ),
         ),
-        const SizedBox(width: LuminaDimensions.paddingS),
-      ],
+      ),
     );
   }
 }

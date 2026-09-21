@@ -1,62 +1,68 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive/hive.dart';
-import '../../data/services/recurring_service.dart';
-import '../../domain/entities/history_expense.dart';
-import '../../domain/repositories/history_repository.dart';
-import 'history_state.dart';
+import 'package:lumina/core/database/hive_client.dart';
+import 'package:lumina/features/history/data/services/recurring_service.dart';
+import 'package:lumina/features/history/domain/entities/history_expense.dart';
+import 'package:lumina/features/history/domain/repositories/history_repository.dart';
+import 'package:lumina/features/history/presentation/cubits/history_state.dart';
 
 class HistoryCubit extends Cubit<HistoryState> {
-  final IHistoryRepository _repository;
-
   HistoryCubit(this._repository) : super(HistoryState()) {
     loadRecords();
   }
 
-  /// Получаем сохраненный лимит бюджета из Hive (если настроено, иначе берем из state)
+  final IHistoryRepository _repository;
+
+  static const _budgetLimitKey = 'budget_limit';
+
+  static const _categoryAliases = <String, Set<String>>{
+    'cat_food': {'food', 'food & drinks', 'еда и напитки', 'їжа та напої'},
+    'cat_transport': {'transport', 'транспорт'},
+    'cat_shopping': {'shopping', 'покупки'},
+    'cat_entertainment': {'entertainment', 'развлечения', 'розваги'},
+    'cat_housing': {'housing', 'жильё', 'житло', 'home'},
+    'cat_salary': {'salary', 'зарплата', 'cat_income', 'income'},
+    'cat_income': {'salary', 'зарплата', 'cat_salary', 'income'},
+    'cat_goals': {'savings', 'goals', 'цели', 'цілі'},
+  };
+
+  Box<dynamic> get _settings => Hive.box(HiveClient.settingsBox);
+
   double _getStoredBudgetLimit() {
     try {
-      final settingsBox = Hive.box('settings_box');
-      return settingsBox.get('budget_limit', defaultValue: state.budgetLimit)
-          as double;
-    } catch (_) {
-      return state.budgetLimit;
+      final raw = _settings.get(_budgetLimitKey, defaultValue: 0.0);
+      if (raw is num) return raw.toDouble();
+      return 0.0;
+    } catch (e, st) {
+      debugPrint('budget_limit read failed: $e\n$st');
+      return 0.0;
     }
   }
 
-  /// Сохраняем лимит бюджета в Hive, чтобы он не сбрасывался при перезапуске
   Future<void> _saveBudgetLimitToStore(double limit) async {
     try {
-      final settingsBox = Hive.box('settings_box');
-      await settingsBox.put('budget_limit', limit);
-    } catch (_) {}
+      await _settings.put(_budgetLimitKey, limit);
+    } catch (e, st) {
+      debugPrint('budget_limit write failed: $e\n$st');
+    }
   }
 
   void toggleViewMode(HistoryViewMode mode) {
+    if (state.viewMode == mode) return;
     emit(state.copyWith(viewMode: mode));
   }
 
   void updateBudgetLimit(double newLimit) {
     _saveBudgetLimitToStore(newLimit);
-    _calculateAndEmit(
-      state.allRecords,
-      state.activeFilter,
-      state.dateFilter,
-      state.selectedCategoryKey,
-      state.selectedMonth,
-      state.selectedYear,
-      currentLimit: newLimit,
-    );
+    _recalculate(currentLimit: newLimit);
   }
 
   Future<void> loadRecords() async {
+    if (isClosed) return;
     emit(state.copyWith(isLoading: true));
-
     await _checkRecurringPayments();
-
-    // Загружаем актуальный лимит из локального хранилища при старте
-    final savedLimit = _getStoredBudgetLimit();
-
+    if (isClosed) return;
     _calculateAndEmit(
       _repository.getAllExpenses(),
       state.activeFilter,
@@ -64,10 +70,9 @@ class HistoryCubit extends Cubit<HistoryState> {
       state.selectedCategoryKey,
       state.selectedMonth,
       state.selectedYear,
-      currentLimit: savedLimit,
+      currentLimit: _getStoredBudgetLimit(),
     );
-
-    _syncOfflineRecords();
+    await _syncOfflineRecords();
   }
 
   Future<void> _checkRecurringPayments() async {
@@ -79,37 +84,21 @@ class HistoryCubit extends Cubit<HistoryState> {
           await _repository.syncWithCloud(entity);
         } catch (_) {}
       });
-    } catch (e) {
-      debugPrint('Recurring payment check error: $e');
+    } catch (e, st) {
+      debugPrint('Recurring payment check error: $e\n$st');
     }
   }
 
   void changeFilter(HistoryFilterType typeFilter) {
-    _calculateAndEmit(
-      state.allRecords,
-      typeFilter,
-      state.dateFilter,
-      state.selectedCategoryKey,
-      state.selectedMonth,
-      state.selectedYear,
-      currentLimit: state.budgetLimit,
-    );
+    _recalculate(typeFilter: typeFilter);
   }
 
   void changeDateFilter(DateFilterType dateFilter) {
-    _calculateAndEmit(
-      state.allRecords,
-      state.activeFilter,
-      dateFilter,
-      state.selectedCategoryKey,
-      state.selectedMonth,
-      state.selectedYear,
-      currentLimit: state.budgetLimit,
-    );
+    _recalculate(dateFilter: dateFilter);
   }
 
   void changeCategoryFilter(String? categoryKey) {
-    final bool isAll = categoryKey == null || categoryKey.isEmpty;
+    final isAll = categoryKey == null || categoryKey.isEmpty;
     _calculateAndEmit(
       state.allRecords,
       state.activeFilter,
@@ -123,14 +112,24 @@ class HistoryCubit extends Cubit<HistoryState> {
   }
 
   void changeMonth(int month, int year) {
+    _recalculate(month: month, year: year);
+  }
+
+  void _recalculate({
+    HistoryFilterType? typeFilter,
+    DateFilterType? dateFilter,
+    int? month,
+    int? year,
+    double? currentLimit,
+  }) {
     _calculateAndEmit(
       state.allRecords,
-      state.activeFilter,
-      state.dateFilter,
+      typeFilter ?? state.activeFilter,
+      dateFilter ?? state.dateFilter,
       state.selectedCategoryKey,
-      month,
-      year,
-      currentLimit: state.budgetLimit,
+      month ?? state.selectedMonth,
+      year ?? state.selectedYear,
+      currentLimit: currentLimit ?? state.budgetLimit,
     );
   }
 
@@ -144,7 +143,12 @@ class HistoryCubit extends Cubit<HistoryState> {
     bool clearCategory = false,
     required double currentLimit,
   }) {
+    if (isClosed) return;
+
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final weekStart = today.subtract(Duration(days: now.weekday - 1));
+    final weekEnd = weekStart.add(const Duration(days: 7));
 
     final sortedRecords = List<HistoryExpense>.from(records)
       ..sort((a, b) => b.date.compareTo(a.date));
@@ -154,15 +158,13 @@ class HistoryCubit extends Cubit<HistoryState> {
     }).toList();
 
     final dateFiltered = monthFiltered.where((r) {
+      final day = DateTime(r.date.year, r.date.month, r.date.day);
       return switch (dateFilter) {
-        DateFilterType.today => _isSameDay(r.date, now),
-        DateFilterType.yesterday => _isSameDay(
-          r.date,
-          now.subtract(const Duration(days: 1)),
-        ),
-        DateFilterType.thisWeek => r.date.isAfter(
-          now.subtract(Duration(days: now.weekday - 1)),
-        ),
+        DateFilterType.today => day == today,
+        DateFilterType.yesterday =>
+          day == today.subtract(const Duration(days: 1)),
+        DateFilterType.thisWeek =>
+          !day.isBefore(weekStart) && day.isBefore(weekEnd),
         DateFilterType.all => true,
       };
     }).toList();
@@ -176,15 +178,13 @@ class HistoryCubit extends Cubit<HistoryState> {
     };
 
     final effectiveKey = clearCategory ? null : categoryKey;
-    final finalFiltered = (effectiveKey != null)
-        ? typeFiltered.where((e) {
-            return e.category.toLowerCase() == effectiveKey.toLowerCase();
-          }).toList()
-        : typeFiltered;
+    final finalFiltered = (effectiveKey == null)
+        ? typeFiltered
+        : typeFiltered.where((e) => _matchesCategory(e, effectiveKey)).toList();
 
-    double incomes = 0;
-    double expenses = 0;
-    for (var r in monthFiltered) {
+    var incomes = 0.0;
+    var expenses = 0.0;
+    for (final r in monthFiltered) {
       if (r.isIncome) {
         incomes += r.price;
       } else {
@@ -211,8 +211,17 @@ class HistoryCubit extends Cubit<HistoryState> {
     );
   }
 
-  bool _isSameDay(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
+  bool _matchesCategory(HistoryExpense e, String key) {
+    final stored = e.category.trim().toLowerCase();
+    final needle = key.trim().toLowerCase();
+    if (stored == needle) return true;
+    final aliases = _categoryAliases[needle];
+    if (aliases != null && aliases.contains(stored)) return true;
+    for (final entry in _categoryAliases.entries) {
+      if (entry.value.contains(stored) && entry.key == needle) return true;
+    }
+    return false;
+  }
 
   Future<void> addRecord(HistoryExpense record) async {
     await _repository.saveExpense(record);
@@ -220,8 +229,8 @@ class HistoryCubit extends Cubit<HistoryState> {
     try {
       await _repository.syncWithCloud(record);
       _refreshState();
-    } catch (e) {
-      debugPrint('Sync error: $e');
+    } catch (e, st) {
+      debugPrint('Sync error: $e\n$st');
     }
   }
 
@@ -250,9 +259,9 @@ class HistoryCubit extends Cubit<HistoryState> {
         .getAllExpenses()
         .where((r) => !r.isSynced)
         .toList();
-    for (var record in unsynced) {
+    if (unsynced.isEmpty) return;
+    for (final record in unsynced) {
       try {
-        // Исправлено: теперь вызывается существующий в интерфейсе метод syncWithCloud
         await _repository.syncWithCloud(record);
       } catch (_) {}
     }

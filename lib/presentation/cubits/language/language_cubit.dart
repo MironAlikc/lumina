@@ -39,9 +39,9 @@ class LanguageCubit extends Cubit<Locale> {
   static bool isSupported(String code) => supportedCodes.contains(code);
 
   Future<Box<dynamic>> _settingsBox() async {
-    if (Hive.isBoxOpen(HiveClient.boxName)) {
-      return Hive.box(HiveClient.boxName);
+    if (Hive.isBoxOpen(HiveClient.settingsBox)) {
+      return Hive.box(HiveClient.settingsBox);
     }
-    return Hive.openBox(HiveClient.boxName);
+    return Hive.openBox(HiveClient.settingsBox);
   }
 }

@@ -109,7 +109,7 @@ abstract class AppLocalizations {
   /// No description provided for @pureBalance.
   ///
   /// In en, this message translates to:
-  /// **'Pure balance'**
+  /// **'Net balance'**
   String get pureBalance;
 
   /// No description provided for @limit.
@@ -205,25 +205,25 @@ abstract class AppLocalizations {
   /// No description provided for @settingsTitle.
   ///
   /// In en, this message translates to:
-  /// **'Profile Settings'**
+  /// **'Profile settings'**
   String get settingsTitle;
 
   /// No description provided for @myWallet.
   ///
   /// In en, this message translates to:
-  /// **'My Wallet'**
+  /// **'My wallet'**
   String get myWallet;
 
   /// No description provided for @localProfile.
   ///
   /// In en, this message translates to:
-  /// **'Lumina Local Profile'**
+  /// **'Lumina local profile'**
   String get localProfile;
 
   /// No description provided for @budgetManagement.
   ///
   /// In en, this message translates to:
-  /// **'Budget Management'**
+  /// **'Budget management'**
   String get budgetManagement;
 
   /// No description provided for @monthlyLimit.
@@ -235,25 +235,25 @@ abstract class AppLocalizations {
   /// No description provided for @appSection.
   ///
   /// In en, this message translates to:
-  /// **'Application'**
+  /// **'App'**
   String get appSection;
 
   /// No description provided for @categoryBudgets.
   ///
   /// In en, this message translates to:
-  /// **'Category Budgets'**
+  /// **'Category budgets'**
   String get categoryBudgets;
 
   /// No description provided for @goalsAndSavings.
   ///
   /// In en, this message translates to:
-  /// **'Goals & Savings'**
+  /// **'Goals & savings'**
   String get goalsAndSavings;
 
   /// No description provided for @recurringPayments.
   ///
   /// In en, this message translates to:
-  /// **'Recurring Payments'**
+  /// **'Recurring payments'**
   String get recurringPayments;
 
   /// No description provided for @exportToExcel.
@@ -265,13 +265,13 @@ abstract class AppLocalizations {
   /// No description provided for @interfaceCurrency.
   ///
   /// In en, this message translates to:
-  /// **'Interface Currency'**
+  /// **'Currency'**
   String get interfaceCurrency;
 
   /// No description provided for @interfaceLanguage.
   ///
   /// In en, this message translates to:
-  /// **'Interface Language'**
+  /// **'Language'**
   String get interfaceLanguage;
 
   /// No description provided for @transactionDate.
@@ -301,7 +301,7 @@ abstract class AppLocalizations {
   /// No description provided for @addNote.
   ///
   /// In en, this message translates to:
-  /// **'Add a note...'**
+  /// **'Add a note…'**
   String get addNote;
 
   /// No description provided for @done.
@@ -309,6 +309,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Done'**
   String get done;
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
 
   /// No description provided for @noRecurringPayments.
   ///
@@ -349,7 +367,7 @@ abstract class AppLocalizations {
   /// No description provided for @monthlyLimitLabel.
   ///
   /// In en, this message translates to:
-  /// **'Monthly limit (₴)'**
+  /// **'Monthly limit'**
   String get monthlyLimitLabel;
 
   /// No description provided for @saveLimit.
@@ -367,7 +385,7 @@ abstract class AppLocalizations {
   /// No description provided for @somethingWentWrong.
   ///
   /// In en, this message translates to:
-  /// **'Oops, something went wrong...'**
+  /// **'Oops, something went wrong…'**
   String get somethingWentWrong;
 
   /// No description provided for @tryAgain.
@@ -379,7 +397,7 @@ abstract class AppLocalizations {
   /// No description provided for @newCategory.
   ///
   /// In en, this message translates to:
-  /// **'New Category'**
+  /// **'New category'**
   String get newCategory;
 
   /// No description provided for @create.
@@ -397,7 +415,7 @@ abstract class AppLocalizations {
   /// No description provided for @categoryType.
   ///
   /// In en, this message translates to:
-  /// **'Category Type'**
+  /// **'Category type'**
   String get categoryType;
 
   /// No description provided for @expense.
@@ -415,7 +433,7 @@ abstract class AppLocalizations {
   /// No description provided for @catFood.
   ///
   /// In en, this message translates to:
-  /// **'Food & Drinks'**
+  /// **'Food & drinks'**
   String get catFood;
 
   /// No description provided for @catTransport.
@@ -448,11 +466,29 @@ abstract class AppLocalizations {
   /// **'Income'**
   String get catIncome;
 
+  /// No description provided for @catSalary.
+  ///
+  /// In en, this message translates to:
+  /// **'Salary'**
+  String get catSalary;
+
+  /// No description provided for @otherCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get otherCategory;
+
   /// No description provided for @defaultTransactionName.
   ///
   /// In en, this message translates to:
   /// **'Transaction'**
   String get defaultTransactionName;
+
+  /// No description provided for @amountRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an amount greater than zero'**
+  String get amountRequired;
 
   /// No description provided for @january.
   ///
@@ -571,19 +607,19 @@ abstract class AppLocalizations {
   /// No description provided for @monthlyBudgets.
   ///
   /// In en, this message translates to:
-  /// **'Monthly Budgets'**
+  /// **'Monthly budgets'**
   String get monthlyBudgets;
 
   /// No description provided for @establishedLimits.
   ///
   /// In en, this message translates to:
-  /// **'Established Limits'**
+  /// **'Set limits'**
   String get establishedLimits;
 
   /// No description provided for @addLimit.
   ///
   /// In en, this message translates to:
-  /// **'Add Limit'**
+  /// **'Add limit'**
   String get addLimit;
 
   /// No description provided for @selectLanguage.
@@ -625,7 +661,7 @@ abstract class AppLocalizations {
   /// No description provided for @currencyUsd.
   ///
   /// In en, this message translates to:
-  /// **'US Dollar'**
+  /// **'US dollar'**
   String get currencyUsd;
 
   /// No description provided for @currencyEur.
@@ -633,6 +669,198 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Euro'**
   String get currencyEur;
+
+  /// No description provided for @insightNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'No expenses this month.'**
+  String get insightNoData;
+
+  /// No description provided for @insightTopSpend.
+  ///
+  /// In en, this message translates to:
+  /// **'🔥 You spend the most on \"{category}\" ({percent}% of expenses).'**
+  String insightTopSpend(String category, String percent);
+
+  /// No description provided for @analyticsError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t calculate analytics.'**
+  String get analyticsError;
+
+  /// No description provided for @goalsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Goals & savings'**
+  String get goalsTitle;
+
+  /// No description provided for @goalsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No active goals yet.\nCreate a jar to start saving.'**
+  String get goalsEmpty;
+
+  /// No description provided for @goalsSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved: {amount}'**
+  String goalsSaved(String amount);
+
+  /// No description provided for @goalsTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal: {amount}'**
+  String goalsTarget(String amount);
+
+  /// No description provided for @goalsTopUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Add money'**
+  String get goalsTopUp;
+
+  /// No description provided for @goalsNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New goal'**
+  String get goalsNew;
+
+  /// No description provided for @goalsCreateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a savings jar'**
+  String get goalsCreateTitle;
+
+  /// No description provided for @goalsNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal name'**
+  String get goalsNameHint;
+
+  /// No description provided for @goalsAmountHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Target amount ({symbol})'**
+  String goalsAmountHint(String symbol);
+
+  /// No description provided for @goalsIconLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Icon'**
+  String get goalsIconLabel;
+
+  /// No description provided for @goalsCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create goal'**
+  String get goalsCreate;
+
+  /// No description provided for @goalsCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get goalsCancel;
+
+  /// No description provided for @goalsDepositTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to \"{title}\"'**
+  String goalsDepositTitle(String title);
+
+  /// No description provided for @goalsDepositAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount ({symbol})'**
+  String goalsDepositAmount(String symbol);
+
+  /// No description provided for @goalsDeposit.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get goalsDeposit;
+
+  /// No description provided for @goalsDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete goal?'**
+  String get goalsDeleteTitle;
+
+  /// No description provided for @goalsDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{title}\" and its progress?'**
+  String goalsDeleteConfirm(String title);
+
+  /// No description provided for @goalsDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get goalsDelete;
+
+  /// No description provided for @exportColId.
+  ///
+  /// In en, this message translates to:
+  /// **'ID'**
+  String get exportColId;
+
+  /// No description provided for @exportColDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get exportColDate;
+
+  /// No description provided for @exportColName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get exportColName;
+
+  /// No description provided for @exportColCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get exportColCategory;
+
+  /// No description provided for @exportColAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get exportColAmount;
+
+  /// No description provided for @exportColType.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get exportColType;
+
+  /// No description provided for @exportNoCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Uncategorized'**
+  String get exportNoCategory;
+
+  /// No description provided for @exportShareText.
+  ///
+  /// In en, this message translates to:
+  /// **'Lumina report for {month}.{year}'**
+  String exportShareText(String month, String year);
+
+  /// No description provided for @matrixIncomeTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Income total'**
+  String get matrixIncomeTotal;
+
+  /// No description provided for @matrixExpenseTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Expense total'**
+  String get matrixExpenseTotal;
+
+  /// No description provided for @matrixNet.
+  ///
+  /// In en, this message translates to:
+  /// **'Net'**
+  String get matrixNet;
 }
 
 class _AppLocalizationsDelegate

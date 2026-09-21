@@ -1,14 +1,17 @@
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import '../../../features/history/data/models/history_expense_model.dart';
+import 'package:lumina/features/history/data/models/history_expense_model.dart';
 
 class HiveClient {
+  /// Транзакции. Сюда нельзя класть язык/валюту/лимит.
   static const String boxName = 'history_box';
+
+  /// Язык, валюта, месячный лимит.
+  static const String settingsBox = 'settings_box';
 
   Future<void> init() async {
     await Hive.initFlutter();
 
-    // 1. Регистрация адаптеров
     if (!Hive.isAdapterRegistered(0)) {
       Hive.registerAdapter(TransactionTypeAdapter());
     }
@@ -16,55 +19,50 @@ class HiveClient {
       Hive.registerAdapter(HistoryExpenseModelAdapter());
     }
 
-    // 2. Безопасная миграция данных
-    if (await Hive.boxExists(boxName)) {
-      final rawBox = await Hive.openBox(boxName);
-      if (rawBox.isNotEmpty && rawBox.values.first is! HistoryExpenseModel) {
-        await rawBox.clear();
-        debugPrint('🧹 Кэш Hive очищен: структура модели обновлена.');
-      }
-      await rawBox.close();
+    await _openHistoryBox();
+    await _openUntypedBox(settingsBox);
+  }
+
+  Future<void> _openHistoryBox() async {
+    if (Hive.isBoxOpen(boxName)) return;
+
+    try {
+      await Hive.openBox<HistoryExpenseModel>(boxName);
+      return;
+    } catch (e) {
+      debugPrint('Typed history_box open failed: $e');
     }
 
-    // 3. Открытие коробки
-    final box = await Hive.openBox<HistoryExpenseModel>(boxName);
-
-    // 4. Демо-данные
-    if (box.isEmpty) {
-      final demo = [
-        HistoryExpenseModel(
-          id: '1',
-          date: DateTime(2026, 7, 3),
-          productName: 'Зарплата',
-          price: 45000.0,
-          categoryId: 'cat_salary',
-          categoryName: 'Salary',
-          type: TransactionType.income,
-        ),
-        HistoryExpenseModel(
-          id: '2',
-          date: DateTime(2026, 7, 3),
-          productName: 'Супермаркет',
-          price: 1250.0,
-          categoryId: 'cat_food',
-          categoryName: 'Продукты',
-          type: TransactionType.expense,
-        ),
-        HistoryExpenseModel(
-          id: '3',
-          date: DateTime(2026, 7, 2),
-          productName: 'Заправка',
-          price: 2100.0,
-          categoryId: 'cat_transport',
-          categoryName: 'Транспорт',
-          type: TransactionType.expense,
-        ),
-      ];
-
-      for (var expense in demo) {
-        await box.put(expense.id, expense);
+    try {
+      final raw = await Hive.openBox(boxName);
+      final recovered = <String, HistoryExpenseModel>{};
+      for (final value in raw.values) {
+        if (value is HistoryExpenseModel) {
+          recovered[value.id] = value;
+        }
       }
-      debugPrint('🚀 Демо-данные успешно загружены!');
+      await raw.close();
+      await Hive.deleteBoxFromDisk(boxName);
+      final box = await Hive.openBox<HistoryExpenseModel>(boxName);
+      if (recovered.isNotEmpty) {
+        await box.putAll(recovered);
+      }
+    } catch (e, st) {
+      debugPrint('history_box recovery failed: $e\n$st');
+      await Hive.deleteBoxFromDisk(boxName);
+      await Hive.openBox<HistoryExpenseModel>(boxName);
+    }
+  }
+
+  Future<void> _openUntypedBox(String name) async {
+    try {
+      if (!Hive.isBoxOpen(name)) {
+        await Hive.openBox(name);
+      }
+    } catch (e, st) {
+      debugPrint('$name damaged, recreating: $e\n$st');
+      await Hive.deleteBoxFromDisk(name);
+      await Hive.openBox(name);
     }
   }
 }

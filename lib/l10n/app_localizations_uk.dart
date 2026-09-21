@@ -18,7 +18,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get limit => 'Ліміт';
 
   @override
-  String get overLimit => 'Перевищено місячний ліміт';
+  String get overLimit => 'Місячний ліміт перевищено';
 
   @override
   String get income => 'Доходи';
@@ -36,13 +36,13 @@ class AppLocalizationsUk extends AppLocalizations {
   String get seeAll => 'Дивитися все';
 
   @override
-  String get noTransactionsYet => 'Немає операцій — додайте першу';
+  String get noTransactionsYet => 'Ще немає операцій — додайте першу';
 
   @override
   String get noExpensesForPeriod => 'Немає операцій за цей період';
 
   @override
-  String get noExpensesForMonth => 'Цього місяця поки немає операцій';
+  String get noExpensesForMonth => 'Цього місяця ще немає операцій';
 
   @override
   String get total => 'Разом';
@@ -90,10 +90,10 @@ class AppLocalizationsUk extends AppLocalizations {
   String get exportToExcel => 'Експорт в Excel';
 
   @override
-  String get interfaceCurrency => 'Валюта інтерфейсу';
+  String get interfaceCurrency => 'Валюта';
 
   @override
-  String get interfaceLanguage => 'Мова інтерфейсу';
+  String get interfaceLanguage => 'Мова';
 
   @override
   String get transactionDate => 'Дата транзакції';
@@ -108,10 +108,19 @@ class AppLocalizationsUk extends AppLocalizations {
   String get confirm => 'Підтвердити';
 
   @override
-  String get addNote => 'Додати нотатку...';
+  String get addNote => 'Додати нотатку…';
 
   @override
   String get done => 'Готово';
+
+  @override
+  String get cancel => 'Скасувати';
+
+  @override
+  String get save => 'Зберегти';
+
+  @override
+  String get delete => 'Видалити';
 
   @override
   String get noRecurringPayments =>
@@ -124,16 +133,16 @@ class AppLocalizationsUk extends AppLocalizations {
   String get budgetPeriod => 'Період';
 
   @override
-  String get noLimitsThisMonth => 'На цей місяць лімітів ще не встановлено.';
+  String get noLimitsThisMonth => 'На цей місяць ліміти ще не встановлені.';
 
   @override
   String get setCategoryLimit => 'Встановити ліміт категорії';
 
   @override
-  String get chooseCategory => 'Виберіть категорію';
+  String get chooseCategory => 'Обрати категорію';
 
   @override
-  String get monthlyLimitLabel => 'Місячний ліміт (₴)';
+  String get monthlyLimitLabel => 'Місячний ліміт';
 
   @override
   String get saveLimit => 'Зберегти ліміт';
@@ -142,7 +151,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get change => 'Змінити';
 
   @override
-  String get somethingWentWrong => 'Упс, щось пішло не так...';
+  String get somethingWentWrong => 'Ой, щось пішло не так…';
 
   @override
   String get tryAgain => 'Спробувати знову';
@@ -160,10 +169,10 @@ class AppLocalizationsUk extends AppLocalizations {
   String get categoryType => 'Тип категорії';
 
   @override
-  String get expense => 'Витрати';
+  String get expense => 'Витрата';
 
   @override
-  String get incomeType => 'Доходи';
+  String get incomeType => 'Дохід';
 
   @override
   String get catFood => 'Їжа та напої';
@@ -181,10 +190,19 @@ class AppLocalizationsUk extends AppLocalizations {
   String get catHousing => 'Житло';
 
   @override
-  String get catIncome => 'Дохід';
+  String get catIncome => 'Доходи';
+
+  @override
+  String get catSalary => 'Зарплата';
+
+  @override
+  String get otherCategory => 'Інше';
 
   @override
   String get defaultTransactionName => 'Транзакція';
+
+  @override
+  String get amountRequired => 'Введіть суму більше нуля';
 
   @override
   String get january => 'Січень';
@@ -244,7 +262,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get sun => 'нд';
 
   @override
-  String get monthlyBudgets => 'Бюджети на місяць';
+  String get monthlyBudgets => 'Місячні бюджети';
 
   @override
   String get establishedLimits => 'Встановлені ліміти';
@@ -275,4 +293,117 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get currencyEur => 'Євро';
+
+  @override
+  String get insightNoData => 'Цього місяця немає витрат.';
+
+  @override
+  String insightTopSpend(String category, String percent) {
+    return '🔥 Найбільше витрачаєте на «$category» ($percent% від витрат).';
+  }
+
+  @override
+  String get analyticsError => 'Не вдалося порахувати аналітику.';
+
+  @override
+  String get goalsTitle => 'Цілі та заощадження';
+
+  @override
+  String get goalsEmpty =>
+      'Поки немає активних цілей.\nСтворіть скарбничку, щоб почати відкладати.';
+
+  @override
+  String goalsSaved(String amount) {
+    return 'Накопичено: $amount';
+  }
+
+  @override
+  String goalsTarget(String amount) {
+    return 'Ціль: $amount';
+  }
+
+  @override
+  String get goalsTopUp => 'Поповнити';
+
+  @override
+  String get goalsNew => 'Нова ціль';
+
+  @override
+  String get goalsCreateTitle => 'Створити скарбничку';
+
+  @override
+  String get goalsNameHint => 'Назва цілі';
+
+  @override
+  String goalsAmountHint(String symbol) {
+    return 'Цільова сума ($symbol)';
+  }
+
+  @override
+  String get goalsIconLabel => 'Іконка';
+
+  @override
+  String get goalsCreate => 'Створити ціль';
+
+  @override
+  String get goalsCancel => 'Скасувати';
+
+  @override
+  String goalsDepositTitle(String title) {
+    return 'Поповнити «$title»';
+  }
+
+  @override
+  String goalsDepositAmount(String symbol) {
+    return 'Сума ($symbol)';
+  }
+
+  @override
+  String get goalsDeposit => 'Внести';
+
+  @override
+  String get goalsDeleteTitle => 'Видалити ціль?';
+
+  @override
+  String goalsDeleteConfirm(String title) {
+    return 'Видалити «$title» і весь прогрес?';
+  }
+
+  @override
+  String get goalsDelete => 'Видалити';
+
+  @override
+  String get exportColId => 'ID';
+
+  @override
+  String get exportColDate => 'Дата';
+
+  @override
+  String get exportColName => 'Назва';
+
+  @override
+  String get exportColCategory => 'Категорія';
+
+  @override
+  String get exportColAmount => 'Сума';
+
+  @override
+  String get exportColType => 'Тип';
+
+  @override
+  String get exportNoCategory => 'Без категорії';
+
+  @override
+  String exportShareText(String month, String year) {
+    return 'Звіт Lumina за $month.$year';
+  }
+
+  @override
+  String get matrixIncomeTotal => 'Всього доходів';
+
+  @override
+  String get matrixExpenseTotal => 'Всього витрат';
+
+  @override
+  String get matrixNet => 'Баланс';
 }
