@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lumina/core/theme/lumina_colors.dart';
+import 'package:lumina/features/history/data/models/custom_category_model.dart';
 import 'package:lumina/l10n/app_localizations.dart';
-import '../../data/models/custom_category_model.dart';
 
 class CategoryFilterChips extends StatelessWidget {
-  final List<CustomCategory> categories;
-  final String? selectedCategoryKey;
-  final ValueChanged<String?> onCategorySelected;
-
   const CategoryFilterChips({
     super.key,
     required this.categories,
@@ -15,36 +12,44 @@ class CategoryFilterChips extends StatelessWidget {
     required this.onCategorySelected,
   });
 
+  final List<CustomCategory> categories;
+  final String? selectedCategoryKey;
+  final ValueChanged<String?> onCategorySelected;
+
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
-    final bool isAllSelected = selectedCategoryKey == null;
 
     return SizedBox(
-      height: 38,
+      height: 42,
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
         physics: const BouncingScrollPhysics(),
         children: [
-          _buildChipItem(
-            context: context,
-            id: null,
+          _ChipItem(
             label: loc.allFilter,
             icon: Icons.grid_view_rounded,
-            isSelected: isAllSelected,
+            isSelected: selectedCategoryKey == null,
+            onTap: () {
+              HapticFeedback.selectionClick();
+              onCategorySelected(null);
+            },
           ),
           const SizedBox(width: 6),
           ...categories.map((cat) {
-            final isSelected = selectedCategoryKey == cat.id;
             return Padding(
               padding: const EdgeInsets.only(right: 6),
-              child: _buildChipItem(
-                context: context,
-                id: cat.id,
-                label: cat.name,
+              child: _ChipItem(
+                label: cat.localizedName(loc),
                 icon: cat.icon,
-                isSelected: isSelected,
+                isSelected: selectedCategoryKey == cat.id,
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  onCategorySelected(
+                    selectedCategoryKey == cat.id ? null : cat.id,
+                  );
+                },
               ),
             );
           }),
@@ -52,19 +57,27 @@ class CategoryFilterChips extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildChipItem({
-    required BuildContext context,
-    required String? id,
-    required String label,
-    required IconData icon,
-    required bool isSelected,
-  }) {
+class _ChipItem extends StatelessWidget {
+  const _ChipItem({
+    required this.label,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => onCategorySelected(id),
-        // Возвращаем и синхронизируем borderRadius для красивой анимации нажатия
+        onTap: onTap,
         borderRadius: BorderRadius.circular(30),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
@@ -77,23 +90,16 @@ class CategoryFilterChips extends StatelessWidget {
               color: isSelected
                   ? Colors.transparent
                   : LuminaColors.cardMintBorder.withValues(alpha: 0.6),
-              width: 1.0,
             ),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: LuminaColors.accent.withValues(alpha: 0.2),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
+            boxShadow: [
+              BoxShadow(
+                color: isSelected
+                    ? LuminaColors.accent.withValues(alpha: 0.2)
+                    : Colors.black.withValues(alpha: 0.02),
+                blurRadius: isSelected ? 6 : 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,

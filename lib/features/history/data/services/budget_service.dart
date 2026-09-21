@@ -1,5 +1,5 @@
 import 'package:hive/hive.dart';
-import '../models/budget_model.dart';
+import 'package:lumina/features/history/data/models/budget_model.dart';
 import 'package:uuid/uuid.dart';
 
 class BudgetService {
@@ -7,7 +7,7 @@ class BudgetService {
 
   static Future<Box<BudgetModel>> _openBox() async {
     if (!Hive.isBoxOpen(boxName)) {
-      return await Hive.openBox<BudgetModel>(boxName);
+      return Hive.openBox<BudgetModel>(boxName);
     }
     return Hive.box<BudgetModel>(boxName);
   }
@@ -20,28 +20,24 @@ class BudgetService {
   }) async {
     final box = await _openBox();
 
-    // Проверяем, есть ли уже лимит на эту категорию в текущем месяце
-    final existingIndex = box.values.toList().indexWhere(
-      (b) => b.categoryId == categoryId && b.month == month && b.year == year,
-    );
-
-    if (existingIndex != -1) {
-      final existingBudget = box.getAt(existingIndex);
-      if (existingBudget != null) {
-        final updated = existingBudget.copyWith(limitAmount: limitAmount);
-        await updated.save();
+    for (final key in box.keys) {
+      final existing = box.get(key);
+      if (existing == null) continue;
+      if (existing.categoryId == categoryId &&
+          existing.month == month &&
+          existing.year == year) {
+        await box.put(key, existing.copyWith(limitAmount: limitAmount));
         return;
       }
     }
 
-    // Если нет, создаем новый
-    final newBudget = BudgetModel(
+    final budget = BudgetModel(
       id: const Uuid().v4(),
       categoryId: categoryId,
       limitAmount: limitAmount,
       month: month,
       year: year,
     );
-    await box.add(newBudget);
+    await box.put(budget.id, budget);
   }
 }

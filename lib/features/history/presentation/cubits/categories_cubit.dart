@@ -1,7 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive/hive.dart';
+import 'package:lumina/features/history/data/models/custom_category_model.dart';
 import 'package:lumina/features/history/presentation/cubits/categories_state.dart';
-import '../../data/models/custom_category_model.dart';
 
 class CategoriesCubit extends Cubit<CategoriesState> {
   CategoriesCubit() : super(CategoriesLoading()) {
@@ -10,66 +10,45 @@ class CategoriesCubit extends Cubit<CategoriesState> {
 
   Box<CustomCategory> get _box => Hive.box<CustomCategory>('categories_box');
 
-  /// Вспомогательный метод для форматирования названия: первая буква заглавная, остальные без изменений
   String _formatCategoryName(String rawName) {
     final trimmed = rawName.trim();
     if (trimmed.isEmpty) return trimmed;
     return trimmed[0].toUpperCase() + trimmed.substring(1);
   }
 
-  /// Загрузка категорий с инициализацией дефолтных значений при пустой базе
   Future<void> loadCategories() async {
     try {
       emit(CategoriesLoading());
 
       if (_box.isEmpty) {
-        final defaultCategories = [
-          // Расходы
-          CustomCategory(
-            id: 'cat_food',
-            name: 'Food',
-            iconKey: 'food',
-            colorHex: 0xFFFF9F43,
-            type: 'expense',
-          ),
-          CustomCategory(
-            id: 'cat_transport',
-            name: 'Transport',
-            iconKey: 'transport',
-            colorHex: 0xFF3B82F6,
-            type: 'expense',
-          ),
-          CustomCategory(
-            id: 'cat_shopping',
-            name: 'Shopping',
-            iconKey: 'shopping',
-            colorHex: 0xFFFF4757,
-            type: 'expense',
-          ),
-          // Доход (Приход)
-          CustomCategory(
-            id: 'cat_salary',
-            name: 'Salary',
-            iconKey: 'wallet',
-            colorHex: 0xFF2ECC71,
-            type: 'income',
-          ),
-        ];
-        for (var cat in defaultCategories) {
+        for (final cat in CustomCategory.defaults()) {
           await _box.put(cat.id, cat);
         }
+      } else {
+        await _ensureDefaultCategories();
       }
 
       final list = _box.values.toList()
-        ..sort((a, b) => a.name.compareTo(b.name));
+        ..sort((a, b) {
+          final byType = a.type.compareTo(b.type);
+          if (byType != 0) return byType;
+          return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        });
 
       emit(CategoriesLoaded(list));
     } catch (e) {
-      emit(CategoriesError('Не удалось загрузить категории: ${e.toString()}'));
+      emit(const CategoriesError('load_failed'));
     }
   }
 
-  /// Добавление новой категории с авто-форматированием имени
+  Future<void> _ensureDefaultCategories() async {
+    for (final cat in CustomCategory.defaults()) {
+      if (!_box.containsKey(cat.id)) {
+        await _box.put(cat.id, cat);
+      }
+    }
+  }
+
   Future<void> addCategory({
     required String name,
     required String iconKey,
@@ -78,24 +57,34 @@ class CategoriesCubit extends Cubit<CategoriesState> {
   }) async {
     try {
       final formattedName = _formatCategoryName(name);
-      final String id = 'cat_${DateTime.now().millisecondsSinceEpoch}';
+      if (formattedName.isEmpty) return;
 
-      final newCategory = CustomCategory(
-        id: id,
-        name: formattedName,
-        iconKey: iconKey,
-        colorHex: colorHex,
-        type: type,
+      final duplicate = _box.values.any(
+        (c) => c.name.toLowerCase() == formattedName.toLowerCase(),
       );
+      if (duplicate) {
+        emit(const CategoriesError('duplicate'));
+        await loadCategories();
+        return;
+      }
 
-      await _box.put(id, newCategory);
+      final id = 'cat_${DateTime.now().millisecondsSinceEpoch}';
+      await _box.put(
+        id,
+        CustomCategory(
+          id: id,
+          name: formattedName,
+          iconKey: iconKey,
+          colorHex: colorHex,
+          type: type,
+        ),
+      );
       await loadCategories();
-    } catch (e) {
-      emit(CategoriesError('Ошибка добавления категории: ${e.toString()}'));
+    } catch (_) {
+      emit(const CategoriesError('add_failed'));
     }
   }
 
-  /// Обновление существующей категории
   Future<void> updateCategory({
     required String id,
     required String name,
@@ -104,30 +93,29 @@ class CategoriesCubit extends Cubit<CategoriesState> {
     required String type,
   }) async {
     try {
-      final formattedName = _formatCategoryName(name);
-
-      final updatedCategory = CustomCategory(
-        id: id,
-        name: formattedName,
-        iconKey: iconKey,
-        colorHex: colorHex,
-        type: type,
+      await _box.put(
+        id,
+        CustomCategory(
+          id: id,
+          name: _formatCategoryName(name),
+          iconKey: iconKey,
+          colorHex: colorHex,
+          type: type,
+        ),
       );
-
-      await _box.put(id, updatedCategory);
       await loadCategories();
-    } catch (e) {
-      emit(CategoriesError('Ошибка обновления категории: ${e.toString()}'));
+    } catch (_) {
+      emit(const CategoriesError('update_failed'));
     }
   }
 
-  /// Удаление категории по ID
   Future<void> deleteCategory(String id) async {
     try {
+      if (CustomCategory.defaults().any((c) => c.id == id)) return;
       await _box.delete(id);
       await loadCategories();
-    } catch (e) {
-      emit(CategoriesError('Ошибка удаления категории: ${e.toString()}'));
+    } catch (_) {
+      emit(const CategoriesError('delete_failed'));
     }
   }
 }

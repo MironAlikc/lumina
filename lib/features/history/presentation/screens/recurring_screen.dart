@@ -4,11 +4,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lumina/core/theme/lumina_colors.dart';
 import 'package:lumina/core/theme/lumina_dimensions.dart';
+import 'package:lumina/features/history/data/models/custom_category_model.dart';
+import 'package:lumina/features/history/data/models/recurring_expense_model.dart';
+import 'package:lumina/features/history/data/services/recurring_service.dart';
+import 'package:lumina/features/history/presentation/cubits/categories_cubit.dart';
+import 'package:lumina/features/history/presentation/cubits/categories_state.dart';
+import 'package:lumina/l10n/app_localizations.dart';
 import 'package:lumina/presentation/cubits/currency/currency_cubit.dart';
-import '../../data/models/recurring_expense_model.dart';
-import '../../data/services/recurring_service.dart';
-import '../cubits/categories_cubit.dart';
-import '../cubits/categories_state.dart';
 
 class RecurringScreen extends StatefulWidget {
   const RecurringScreen({super.key});
@@ -18,8 +20,7 @@ class RecurringScreen extends StatefulWidget {
 }
 
 class _RecurringScreenState extends State<RecurringScreen> {
-  late Box<RecurringExpenseModel> _box;
-  bool _isInitialized = false;
+  Box<RecurringExpenseModel>? _box;
 
   @override
   void initState() {
@@ -28,30 +29,24 @@ class _RecurringScreenState extends State<RecurringScreen> {
   }
 
   Future<void> _openBox() async {
-    if (!Hive.isBoxOpen(RecurringService.boxName)) {
-      _box = await Hive.openBox<RecurringExpenseModel>(
-        RecurringService.boxName,
-      );
-    } else {
-      _box = Hive.box<RecurringExpenseModel>(RecurringService.boxName);
-    }
-    if (mounted) {
-      setState(() {
-        _isInitialized = true;
-      });
-    }
+    final box = Hive.isBoxOpen(RecurringService.boxName)
+        ? Hive.box<RecurringExpenseModel>(RecurringService.boxName)
+        : await Hive.openBox<RecurringExpenseModel>(RecurringService.boxName);
+    if (mounted) setState(() => _box = box);
   }
 
   @override
   Widget build(BuildContext context) {
-    final currencySymbol = context.watch<CurrencyCubit>().state.symbol;
+    final loc = AppLocalizations.of(context)!;
+    final symbol = context.watch<CurrencyCubit>().state.symbol;
+    final box = _box;
 
     return Scaffold(
       backgroundColor: LuminaColors.background,
       appBar: AppBar(
-        title: const Text(
-          'Регулярные платежи',
-          style: TextStyle(
+        title: Text(
+          loc.recurringPayments,
+          style: const TextStyle(
             color: LuminaColors.textMain,
             fontWeight: FontWeight.bold,
           ),
@@ -60,23 +55,22 @@ class _RecurringScreenState extends State<RecurringScreen> {
         elevation: 0,
         iconTheme: const IconThemeData(color: LuminaColors.textMain),
       ),
-      body: !_isInitialized
+      body: box == null
           ? const Center(child: CircularProgressIndicator())
           : ValueListenableBuilder(
-              valueListenable: _box.listenable(),
-              builder: (context, Box<RecurringExpenseModel> box, _) {
-                final items = box.values.toList();
-
+              valueListenable: box.listenable(),
+              builder: (context, Box<RecurringExpenseModel> itemsBox, _) {
+                final items = itemsBox.values.toList();
                 if (items.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Padding(
-                      padding: EdgeInsets.symmetric(
+                      padding: const EdgeInsets.symmetric(
                         horizontal: LuminaDimensions.paddingXL,
                       ),
                       child: Text(
-                        'Нет регулярных платежей.\nНажмите кнопку ниже, чтобы добавить.',
+                        loc.noRecurringPayments,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: LuminaColors.textSecondary,
                           fontSize: 15,
                         ),
@@ -87,156 +81,71 @@ class _RecurringScreenState extends State<RecurringScreen> {
 
                 return ListView.builder(
                   physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
                   itemCount: items.length,
                   itemBuilder: (context, index) {
                     final item = items[index];
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      decoration: BoxDecoration(
-                        color: LuminaColors.surface,
-                        borderRadius: LuminaDimensions.borderRadiusLarge,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.03),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color:
-                                    (item.isIncome
-                                            ? LuminaColors.success
-                                            : LuminaColors.error)
-                                        .withValues(alpha: 0.1),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                item.isIncome
-                                    ? Icons.arrow_downward_rounded
-                                    : Icons.arrow_upward_rounded,
-                                color: item.isIncome
-                                    ? LuminaColors.success
-                                    : LuminaColors.error,
-                                size: 20,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    item.productName,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 16,
-                                      color: LuminaColors.textMain,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 2,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: LuminaColors.inputFill,
-                                          borderRadius: BorderRadius.circular(
-                                            6,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          '${item.dayOfMonth}-е число',
-                                          style: const TextStyle(
-                                            color: LuminaColors.textSecondary,
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  '${item.isIncome ? '+' : '-'}${item.price.toStringAsFixed(0)} $currencySymbol',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15,
-                                    color: item.isIncome
-                                        ? LuminaColors.success
-                                        : LuminaColors.textMain,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                GestureDetector(
-                                  onTap: () {
-                                    HapticFeedback.mediumImpact();
-                                    item.delete();
-                                  },
-                                  child: const Text(
-                                    'Удалить',
-                                    style: TextStyle(
-                                      color: LuminaColors.error,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
+                    return _RecurringCard(
+                      item: item,
+                      symbol: symbol,
+                      loc: loc,
+                      onDelete: () => _confirmDelete(item, loc),
                     );
                   },
                 );
               },
             ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 70),
-        child: FloatingActionButton.extended(
-          backgroundColor: LuminaColors.primary,
-          icon: const Icon(Icons.add_rounded, color: Colors.white),
-          label: const Text(
-            'Добавить шаблон',
-            style: TextStyle(color: Colors.white),
-          ),
-          onPressed: () {
-            HapticFeedback.lightImpact();
-            _showAddRecurringBottomSheet(context, currencySymbol);
-          },
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: LuminaColors.primary,
+        icon: const Icon(Icons.add_rounded, color: Colors.white),
+        label: Text(
+          loc.addTemplate,
+          style: const TextStyle(color: Colors.white),
         ),
+        onPressed: () {
+          HapticFeedback.lightImpact();
+          _showAddSheet(symbol, loc);
+        },
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
-  void _showAddRecurringBottomSheet(
-    BuildContext context,
-    String currencySymbol,
-  ) {
+  Future<void> _confirmDelete(
+    RecurringExpenseModel item,
+    AppLocalizations loc,
+  ) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(loc.delete),
+        content: Text(item.productName),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(loc.cancel),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(loc.delete),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      HapticFeedback.mediumImpact();
+      await item.delete();
+    }
+  }
+
+  void _showAddSheet(String symbol, AppLocalizations loc) {
     final nameController = TextEditingController();
     final priceController = TextEditingController();
-    int selectedDay = 1;
-    bool isIncome = false;
+    var selectedDay = 1;
+    var isIncome = false;
     String? selectedCategoryId;
 
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: LuminaColors.surface,
@@ -247,14 +156,23 @@ class _RecurringScreenState extends State<RecurringScreen> {
       ),
       builder: (sheetContext) {
         return StatefulBuilder(
-          builder: (context, setStateModal) {
+          builder: (context, setModal) {
             final catState = context.watch<CategoriesCubit>().state;
-            final categories = catState is CategoriesLoaded
+            final all = catState is CategoriesLoaded
                 ? catState.categories
-                : [];
+                : const <CustomCategory>[];
+            final categories = all
+                .where((c) => c.type == (isIncome ? 'income' : 'expense'))
+                .toList();
 
-            if (selectedCategoryId == null && categories.isNotEmpty) {
-              selectedCategoryId = categories.first.id;
+            selectedCategoryId ??= categories.isNotEmpty
+                ? categories.first.id
+                : null;
+            if (selectedCategoryId != null &&
+                categories.every((c) => c.id != selectedCategoryId)) {
+              selectedCategoryId = categories.isNotEmpty
+                  ? categories.first.id
+                  : null;
             }
 
             return Padding(
@@ -263,7 +181,7 @@ class _RecurringScreenState extends State<RecurringScreen> {
                 right: LuminaDimensions.paddingXL,
                 top: LuminaDimensions.paddingXL,
                 bottom:
-                    MediaQuery.of(sheetContext).viewInsets.bottom +
+                    MediaQuery.viewInsetsOf(sheetContext).bottom +
                     LuminaDimensions.paddingXL,
               ),
               child: SingleChildScrollView(
@@ -271,9 +189,9 @@ class _RecurringScreenState extends State<RecurringScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Новый регулярный платеж',
-                      style: TextStyle(
+                    Text(
+                      loc.addTemplate,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: LuminaColors.textMain,
@@ -284,7 +202,7 @@ class _RecurringScreenState extends State<RecurringScreen> {
                       controller: nameController,
                       autofocus: true,
                       decoration: InputDecoration(
-                        labelText: 'Название (например: Аренда, Зарплата)',
+                        labelText: loc.goalsNameHint,
                         border: OutlineInputBorder(
                           borderRadius: LuminaDimensions.borderRadiusMedium,
                         ),
@@ -297,16 +215,31 @@ class _RecurringScreenState extends State<RecurringScreen> {
                         decimal: true,
                       ),
                       decoration: InputDecoration(
-                        labelText: 'Сумма ($currencySymbol)',
+                        labelText: loc.goalsDepositAmount(symbol),
                         border: OutlineInputBorder(
                           borderRadius: LuminaDimensions.borderRadiusMedium,
                         ),
                       ),
                     ),
                     const SizedBox(height: LuminaDimensions.paddingM),
-                    const Text(
-                      'Категория:',
-                      style: TextStyle(
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        loc.incomeType,
+                        style: const TextStyle(color: LuminaColors.textMain),
+                      ),
+                      value: isIncome,
+                      activeThumbColor: LuminaColors.success,
+                      onChanged: (val) {
+                        setModal(() {
+                          isIncome = val;
+                          selectedCategoryId = null;
+                        });
+                      },
+                    ),
+                    Text(
+                      loc.chooseCategory,
+                      style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
                         color: LuminaColors.textSecondary,
@@ -320,13 +253,10 @@ class _RecurringScreenState extends State<RecurringScreen> {
                         itemCount: categories.length,
                         itemBuilder: (context, index) {
                           final cat = categories[index];
-                          final isSelected = cat.id == selectedCategoryId;
+                          final selected = cat.id == selectedCategoryId;
                           return GestureDetector(
-                            onTap: () {
-                              setStateModal(() {
-                                selectedCategoryId = cat.id;
-                              });
-                            },
+                            onTap: () =>
+                                setModal(() => selectedCategoryId = cat.id),
                             child: Container(
                               margin: const EdgeInsets.only(right: 8),
                               padding: const EdgeInsets.symmetric(
@@ -334,7 +264,7 @@ class _RecurringScreenState extends State<RecurringScreen> {
                                 vertical: 8,
                               ),
                               decoration: BoxDecoration(
-                                color: isSelected
+                                color: selected
                                     ? LuminaColors.primary
                                     : LuminaColors.inputFill,
                                 borderRadius:
@@ -342,15 +272,16 @@ class _RecurringScreenState extends State<RecurringScreen> {
                               ),
                               child: Row(
                                 children: [
-                                  Text(
+                                  Icon(
                                     cat.icon,
-                                    style: const TextStyle(fontSize: 16),
+                                    size: 16,
+                                    color: selected ? Colors.white : cat.color,
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
-                                    cat.name,
+                                    cat.localizedName(loc),
                                     style: TextStyle(
-                                      color: isSelected
+                                      color: selected
                                           ? Colors.white
                                           : LuminaColors.textMain,
                                       fontWeight: FontWeight.w500,
@@ -366,9 +297,9 @@ class _RecurringScreenState extends State<RecurringScreen> {
                     const SizedBox(height: LuminaDimensions.paddingS + 4),
                     Row(
                       children: [
-                        const Text(
-                          'День месяца списания: ',
-                          style: TextStyle(color: LuminaColors.textMain),
+                        Text(
+                          '${loc.day}: ',
+                          style: const TextStyle(color: LuminaColors.textMain),
                         ),
                         Expanded(
                           child: Slider(
@@ -376,17 +307,14 @@ class _RecurringScreenState extends State<RecurringScreen> {
                             min: 1,
                             max: 31,
                             divisions: 30,
-                            label: '$selectedDay-е',
+                            label: '$selectedDay',
                             activeColor: LuminaColors.primary,
-                            onChanged: (val) {
-                              setStateModal(() {
-                                selectedDay = val.toInt();
-                              });
-                            },
+                            onChanged: (val) =>
+                                setModal(() => selectedDay = val.toInt()),
                           ),
                         ),
                         Text(
-                          '$selectedDay-е',
+                          '$selectedDay',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             color: LuminaColors.textMain,
@@ -394,54 +322,38 @@ class _RecurringScreenState extends State<RecurringScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: LuminaDimensions.paddingS + 4),
-                    SwitchListTile(
-                      title: const Text(
-                        'Это доход',
-                        style: TextStyle(color: LuminaColors.textMain),
-                      ),
-                      value: isIncome,
-                      activeColor: LuminaColors.success,
-                      onChanged: (val) {
-                        setStateModal(() {
-                          isIncome = val;
-                        });
-                      },
-                    ),
                     const SizedBox(height: LuminaDimensions.paddingM),
                     SizedBox(
                       width: double.infinity,
                       height: LuminaDimensions.buttonHeight,
                       child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: LuminaColors.success,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: LuminaDimensions.borderRadiusMedium,
-                          ),
-                        ),
                         onPressed: () async {
-                          if (nameController.text.trim().isNotEmpty &&
-                              priceController.text.trim().isNotEmpty) {
-                            final price =
-                                double.tryParse(priceController.text) ?? 0.0;
-                            if (price > 0) {
-                              await RecurringService.addRecurring(
-                                productName: nameController.text.trim(),
-                                price: price,
-                                categoryId: selectedCategoryId ?? 'default',
-                                isIncome: isIncome,
-                                dayOfMonth: selectedDay,
-                              );
-                              if (sheetContext.mounted) {
-                                Navigator.pop(sheetContext);
-                              }
-                            }
+                          final name = nameController.text.trim();
+                          final price =
+                              double.tryParse(
+                                priceController.text.replaceAll(',', '.'),
+                              ) ??
+                              0;
+                          if (name.isEmpty ||
+                              price <= 0 ||
+                              selectedCategoryId == null) {
+                            HapticFeedback.heavyImpact();
+                            return;
+                          }
+                          await RecurringService.addRecurring(
+                            productName: name,
+                            price: price,
+                            categoryId: selectedCategoryId!,
+                            isIncome: isIncome,
+                            dayOfMonth: selectedDay,
+                          );
+                          if (sheetContext.mounted) {
+                            Navigator.pop(sheetContext);
                           }
                         },
-                        child: const Text(
-                          'Сохранить шаблон',
-                          style: TextStyle(
+                        child: Text(
+                          loc.save,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -456,9 +368,118 @@ class _RecurringScreenState extends State<RecurringScreen> {
           },
         );
       },
-    ).then((_) {
+    ).whenComplete(() {
       nameController.dispose();
       priceController.dispose();
     });
+  }
+}
+
+class _RecurringCard extends StatelessWidget {
+  const _RecurringCard({
+    required this.item,
+    required this.symbol,
+    required this.loc,
+    required this.onDelete,
+  });
+
+  final RecurringExpenseModel item;
+  final String symbol;
+  final AppLocalizations loc;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: LuminaColors.surface,
+        borderRadius: LuminaDimensions.borderRadiusLarge,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color:
+                    (item.isIncome ? LuminaColors.success : LuminaColors.error)
+                        .withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                item.isIncome
+                    ? Icons.arrow_downward_rounded
+                    : Icons.arrow_upward_rounded,
+                color: item.isIncome
+                    ? LuminaColors.success
+                    : LuminaColors.error,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.productName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                      color: LuminaColors.textMain,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${loc.day} ${item.dayOfMonth}',
+                    style: const TextStyle(
+                      color: LuminaColors.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${item.isIncome ? '+' : '-'}${item.price.toStringAsFixed(0)} $symbol',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: item.isIncome
+                        ? LuminaColors.success
+                        : LuminaColors.textMain,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                GestureDetector(
+                  onTap: onDelete,
+                  child: Text(
+                    loc.delete,
+                    style: const TextStyle(
+                      color: LuminaColors.error,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

@@ -9,7 +9,7 @@ class LuminaLoadingWidget extends StatefulWidget {
 
 class _LuminaLoadingWidgetState extends State<LuminaLoadingWidget>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
+  late final AnimationController _controller;
 
   @override
   void initState() {
@@ -29,8 +29,9 @@ class _LuminaLoadingWidgetState extends State<LuminaLoadingWidget>
   @override
   Widget build(BuildContext context) {
     return FadeTransition(
-      opacity: Tween(begin: 0.3, end: 0.8).animate(_controller),
+      opacity: Tween<double>(begin: 0.3, end: 0.8).animate(_controller),
       child: ListView.builder(
+        physics: const NeverScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         itemCount: 6,
         itemBuilder: (context, index) => Container(

@@ -3,27 +3,83 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lumina/core/theme/lumina_colors.dart';
 import 'package:lumina/features/history/data/models/custom_category_model.dart';
+import 'package:lumina/features/history/presentation/cubits/categories_cubit.dart';
 import 'package:lumina/features/history/presentation/cubits/categories_state.dart';
 import 'package:lumina/features/history/presentation/screens/create_category_screen.dart';
 import 'package:lumina/l10n/app_localizations.dart';
-import '../../cubits/categories_cubit.dart';
 
 class CategorySelector extends StatefulWidget {
-  final CustomCategory? selectedCategory;
-  final ValueChanged<CustomCategory> onSelected;
-
   const CategorySelector({
     super.key,
     required this.selectedCategory,
     required this.onSelected,
   });
 
+  final CustomCategory? selectedCategory;
+  final ValueChanged<CustomCategory> onSelected;
+
   @override
   State<CategorySelector> createState() => _CategorySelectorState();
 }
 
 class _CategorySelectorState extends State<CategorySelector> {
-  String _selectedType = 'expense';
+  late String _selectedType;
+  var _didAutoSelect = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedType = widget.selectedCategory?.type ?? 'expense';
+  }
+
+  void _selectType(String type) {
+    if (_selectedType == type) return;
+    HapticFeedback.selectionClick();
+    setState(() => _selectedType = type);
+
+    final state = context.read<CategoriesCubit>().state;
+    if (state is! CategoriesLoaded) return;
+    final next = state.categories.where((c) => c.type == type);
+    if (next.isNotEmpty) widget.onSelected(next.first);
+  }
+
+  void _autoSelectIfNeeded(List<CustomCategory> categories) {
+    if (_didAutoSelect ||
+        widget.selectedCategory != null ||
+        categories.isEmpty) {
+      return;
+    }
+    _didAutoSelect = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || widget.selectedCategory != null) return;
+      widget.onSelected(categories.first);
+    });
+  }
+
+  Future<void> _openCreateCategory() async {
+    HapticFeedback.lightImpact();
+    final cubit = context.read<CategoriesCubit>();
+    final before = cubit.state is CategoriesLoaded
+        ? (cubit.state as CategoriesLoaded).categories.map((c) => c.id).toSet()
+        : <String>{};
+
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => BlocProvider.value(
+          value: cubit,
+          child: CreateCategoryScreen(initialType: _selectedType),
+        ),
+      ),
+    );
+
+    if (!mounted) return;
+    final state = cubit.state;
+    if (state is! CategoriesLoaded) return;
+    final created = state.categories.where(
+      (c) => !before.contains(c.id) && c.type == _selectedType,
+    );
+    if (created.isNotEmpty) widget.onSelected(created.last);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,20 +96,20 @@ class _CategorySelectorState extends State<CategorySelector> {
               _TypeTabButton(
                 title: loc.expense,
                 isSelected: _selectedType == 'expense',
-                onTap: () => setState(() => _selectedType = 'expense'),
+                onTap: () => _selectType('expense'),
               ),
               const SizedBox(width: 12),
               _TypeTabButton(
                 title: loc.incomeType,
                 isSelected: _selectedType == 'income',
-                onTap: () => setState(() => _selectedType = 'income'),
+                onTap: () => _selectType('income'),
               ),
             ],
           ),
         ),
         const SizedBox(height: 4),
         SizedBox(
-          height: 76,
+          height: 82,
           child: BlocBuilder<CategoriesCubit, CategoriesState>(
             builder: (context, state) {
               if (state is CategoriesLoading) {
@@ -62,13 +118,13 @@ class _CategorySelectorState extends State<CategorySelector> {
                 );
               }
 
-              final allCategories = state is CategoriesLoaded
+              final categories = state is CategoriesLoaded
                   ? state.categories
-                  : <CustomCategory>[];
+                        .where((cat) => cat.type == _selectedType)
+                        .toList()
+                  : const <CustomCategory>[];
 
-              final categories = allCategories
-                  .where((cat) => cat.type == _selectedType)
-                  .toList();
+              _autoSelectIfNeeded(categories);
 
               return ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -77,14 +133,13 @@ class _CategorySelectorState extends State<CategorySelector> {
                 itemCount: categories.length + 1,
                 itemBuilder: (context, index) {
                   if (index == categories.length) {
-                    return _AddCategoryButton(
-                      onTap: () => _openCreateCategory(context),
-                    );
+                    return _AddCategoryButton(onTap: _openCreateCategory);
                   }
 
                   final category = categories[index];
                   return _CategoryItem(
                     category: category,
+                    label: category.localizedName(loc),
                     isSelected: widget.selectedCategory?.id == category.id,
                     onTap: () {
                       HapticFeedback.lightImpact();
@@ -99,31 +154,18 @@ class _CategorySelectorState extends State<CategorySelector> {
       ],
     );
   }
-
-  void _openCreateCategory(BuildContext context) {
-    HapticFeedback.lightImpact();
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (modalContext) => BlocProvider.value(
-          value: context.read<CategoriesCubit>(),
-          child: const CreateCategoryScreen(),
-        ),
-      ),
-    );
-  }
 }
 
 class _TypeTabButton extends StatelessWidget {
-  final String title;
-  final bool isSelected;
-  final VoidCallback onTap;
-
   const _TypeTabButton({
     required this.title,
     required this.isSelected,
     required this.onTap,
   });
+
+  final String title;
+  final bool isSelected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -150,15 +192,17 @@ class _TypeTabButton extends StatelessWidget {
 }
 
 class _CategoryItem extends StatelessWidget {
-  final CustomCategory category;
-  final bool isSelected;
-  final VoidCallback onTap;
-
   const _CategoryItem({
     required this.category,
+    required this.label,
     required this.isSelected,
     required this.onTap,
   });
+
+  final CustomCategory category;
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -166,8 +210,9 @@ class _CategoryItem extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
-        width: 74,
+        width: 88,
         margin: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
         decoration: BoxDecoration(
           color: isSelected ? category.color : Colors.white,
           borderRadius: BorderRadius.circular(20),
@@ -190,16 +235,16 @@ class _CategoryItem extends StatelessWidget {
               size: 22,
             ),
             const SizedBox(height: 3),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text(
-                category.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: isSelected ? Colors.white : Colors.black54,
-                ),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 10.5,
+                height: 1.15,
+                fontWeight: FontWeight.w600,
+                color: isSelected ? Colors.white : Colors.black54,
               ),
             ),
           ],
@@ -210,9 +255,9 @@ class _CategoryItem extends StatelessWidget {
 }
 
 class _AddCategoryButton extends StatelessWidget {
-  final VoidCallback onTap;
-
   const _AddCategoryButton({required this.onTap});
+
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -220,15 +265,13 @@ class _AddCategoryButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 74,
+        width: 88,
         margin: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: LuminaColors.textSecondary.withValues(alpha: 0.2),
-            style: BorderStyle.solid,
-            width: 1,
           ),
         ),
         child: Column(

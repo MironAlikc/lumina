@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:lumina/core/theme/lumina_theme.dart';
+import 'package:lumina/core/theme/lumina_colors.dart';
 import 'package:lumina/features/history/presentation/cubits/categories_cubit.dart';
 import 'package:lumina/features/history/presentation/cubits/categories_state.dart';
 import 'package:lumina/features/history/presentation/cubits/history_cubit.dart';
@@ -16,6 +16,7 @@ class DashboardFilterRow extends StatelessWidget {
     final loc = AppLocalizations.of(context)!;
 
     return BlocBuilder<HistoryCubit, HistoryState>(
+      buildWhen: (p, n) => p.selectedCategoryKey != n.selectedCategoryKey,
       builder: (context, historyState) {
         return BlocBuilder<CategoriesCubit, CategoriesState>(
           builder: (context, catState) {
@@ -40,13 +41,11 @@ class DashboardFilterRow extends StatelessWidget {
                     },
                   ),
                   ...categories.map((cat) {
-                    final isSelected =
-                        historyState.selectedCategoryKey == cat.id;
                     return _CategoryFilterChip(
                       label: cat.name,
                       icon: cat.icon,
                       iconColor: cat.color,
-                      isSelected: isSelected,
+                      isSelected: historyState.selectedCategoryKey == cat.id,
                       onTap: () {
                         HapticFeedback.lightImpact();
                         context.read<HistoryCubit>().changeCategoryFilter(
@@ -66,12 +65,6 @@ class DashboardFilterRow extends StatelessWidget {
 }
 
 class _CategoryFilterChip extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final Color? iconColor;
-  final bool isSelected;
-  final VoidCallback onTap;
-
   const _CategoryFilterChip({
     required this.label,
     required this.icon,
@@ -80,6 +73,12 @@ class _CategoryFilterChip extends StatelessWidget {
     required this.onTap,
   });
 
+  final String label;
+  final IconData icon;
+  final Color? iconColor;
+  final bool isSelected;
+  final VoidCallback onTap;
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -87,21 +86,16 @@ class _CategoryFilterChip extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
           onTap: onTap,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: isSelected
-                  ? LuminaTheme.accentColor.withValues(alpha: 0.12)
-                  : Colors.white.withValues(alpha: 0.9),
-              borderRadius: BorderRadius.circular(12),
+              color: isSelected ? LuminaColors.primary : Colors.white,
+              borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: isSelected
-                    ? LuminaTheme.accentColor.withValues(alpha: 0.5)
-                    : const Color(0xFFF1F5F9),
-                width: 1,
+                color: isSelected ? LuminaColors.primary : LuminaColors.border,
               ),
             ),
             child: Row(
@@ -111,16 +105,14 @@ class _CategoryFilterChip extends StatelessWidget {
                   icon,
                   size: 14,
                   color: isSelected
-                      ? LuminaTheme.accentColor
-                      : (iconColor ?? LuminaTheme.subTitleColor),
+                      ? Colors.white
+                      : (iconColor ?? LuminaColors.textSecondary),
                 ),
                 const SizedBox(width: 6),
                 Text(
                   label,
                   style: TextStyle(
-                    color: isSelected
-                        ? LuminaTheme.accentColor
-                        : LuminaTheme.textColor,
+                    color: isSelected ? Colors.white : LuminaColors.textMain,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                     fontSize: 13,
                   ),

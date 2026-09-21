@@ -1,68 +1,64 @@
+import 'dart:convert';
 import 'dart:io';
+
+import 'package:lumina/features/history/data/models/custom_category_model.dart';
+import 'package:lumina/features/history/data/models/history_expense_model.dart';
+import 'package:lumina/l10n/app_localizations.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import '../models/history_expense_model.dart';
 
 class ExportService {
-  /// Экспортирует записи за выбранный месяц в CSV-файл и открывает меню «Поделиться»
   static Future<void> exportMonthToCSV(
     List<HistoryExpenseModel> records,
-    List<dynamic> categories,
+    List<CustomCategory> categories,
     int month,
     int year,
+    AppLocalizations loc,
   ) async {
-    // 1. Фильтруем записи за нужный месяц и год
-    final monthRecords = records.where((r) {
-      return r.date.month == month && r.date.year == year;
-    }).toList();
+    final monthRecords = records
+        .where((r) => r.date.month == month && r.date.year == year)
+        .toList();
 
-    // 2. Создаем структуру CSV-документа
     final buffer = StringBuffer();
-    // Заголовки (используем ';' для корректного открытия в Excel)
-    buffer.writeln('ID;Дата;Название;Категория;Сумма;Тип');
+    buffer.writeln(
+      '${loc.exportColId};${loc.exportColDate};${loc.exportColName};${loc.exportColCategory};${loc.exportColAmount};${loc.exportColType}',
+    );
 
-    for (var r in monthRecords) {
-      // Безопасный поиск названия категории
-      String categoryName = 'Без категории';
-      try {
-        final category = categories.firstWhere(
-          (c) => c != null && c.id == r.categoryId,
-        );
-        if (category != null) {
-          categoryName = category.name ?? 'Без категории';
-        }
-      } catch (_) {
-        categoryName = 'Без категории';
-      }
-
-      // Форматируем дату в читаемый вид (YYYY-MM-DD)
+    for (final r in monthRecords) {
+      final category = categories.cast<CustomCategory?>().firstWhere(
+        (c) => c!.id == r.categoryId,
+        orElse: () => null,
+      );
+      final categoryName = category?.localizedName(loc) ?? loc.exportNoCategory;
       final dateStr =
           '${r.date.year}-${r.date.month.toString().padLeft(2, '0')}-${r.date.day.toString().padLeft(2, '0')}';
-
-      // Определяем текстовый тип транзакции
-      final typeStr = r.isIncome ? 'Доход' : 'Расход';
-
-      // Экранируем возможные кавычки в названии, чтобы не ломать CSV структуру
-      final safeProductName = r.productName.replaceAll('"', '""');
-      final safeCategoryName = categoryName.replaceAll('"', '""');
+      final typeStr = r.isIncome ? loc.incomeType : loc.expense;
 
       buffer.writeln(
-        '"${r.id}";"$dateStr";"$safeProductName";"$safeCategoryName";${r.price};"$typeStr"',
+        '"${_esc(r.id)}";"$dateStr";"${_esc(r.productName)}";"${_esc(categoryName)}";${r.price};"${_esc(typeStr)}"',
       );
     }
 
-    // 3. Сохраняем файл во временную директорию устройства
     final directory = await getTemporaryDirectory();
     final path =
         '${directory.path}/lumina_report_${year}_${month.toString().padLeft(2, '0')}.csv';
     final file = File(path);
+    await file.writeAsBytes([
+      0xEF,
+      0xBB,
+      0xBF,
+      ...utf8.encode(buffer.toString()),
+    ]);
 
-    // 4. Записываем байты с BOM (UTF-8 with BOM), чтобы Excel корректно отображал кириллицу
-    await file.writeAsBytes([0xEF, 0xBB, 0xBF, ...buffer.toString().codeUnits]);
-
-    // 5. Вызываем системное диалоговое окно «Поделиться / Сохранить файл»
-    await Share.shareXFiles([
-      XFile(path),
-    ], text: 'Финансовый отчет за $month.$year из приложения Lumina 📊');
+    // Миграция с deprecated Share.shareXFiles на новый API SharePlus.instance.share,
+    // который принимает единый объект ShareParams вместо позиционных аргументов.
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(path)],
+        text: loc.exportShareText('$month', '$year'),
+      ),
+    );
   }
+
+  static String _esc(String value) => value.replaceAll('"', '""');
 }

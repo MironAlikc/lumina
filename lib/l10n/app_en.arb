@@ -1,7 +1,7 @@
 {
   "@@locale": "en",
   "appName": "Lumina",
-  "pureBalance": "Pure balance",
+  "pureBalance": "Net balance",
   "limit": "Limit",
   "overLimit": "Monthly limit exceeded",
   "income": "Income",
@@ -17,48 +17,54 @@
   "allFilter": "All",
   "expenseFilter": "Expenses",
   "incomeFilter": "Income",
-  "settingsTitle": "Profile Settings",
-  "myWallet": "My Wallet",
-  "localProfile": "Lumina Local Profile",
-  "budgetManagement": "Budget Management",
+  "settingsTitle": "Profile settings",
+  "myWallet": "My wallet",
+  "localProfile": "Lumina local profile",
+  "budgetManagement": "Budget management",
   "monthlyLimit": "Monthly limit",
-  "appSection": "Application",
-  "categoryBudgets": "Category Budgets",
-  "goalsAndSavings": "Goals & Savings",
-  "recurringPayments": "Recurring Payments",
+  "appSection": "App",
+  "categoryBudgets": "Category budgets",
+  "goalsAndSavings": "Goals & savings",
+  "recurringPayments": "Recurring payments",
   "exportToExcel": "Export to Excel",
-  "interfaceCurrency": "Interface Currency",
-  "interfaceLanguage": "Interface Language",
+  "interfaceCurrency": "Currency",
+  "interfaceLanguage": "Language",
   "transactionDate": "Transaction date",
   "today": "Today",
   "yesterday": "Yesterday",
   "confirm": "Confirm",
-  "addNote": "Add a note...",
+  "addNote": "Add a note…",
   "done": "Done",
+  "cancel": "Cancel",
+  "save": "Save",
+  "delete": "Delete",
   "noRecurringPayments": "No recurring payments.\nTap the button below to add one.",
   "addTemplate": "Add template",
   "budgetPeriod": "Period",
   "noLimitsThisMonth": "No limits set for this month yet.",
   "setCategoryLimit": "Set a category limit",
   "chooseCategory": "Choose category",
-  "monthlyLimitLabel": "Monthly limit (₴)",
+  "monthlyLimitLabel": "Monthly limit",
   "saveLimit": "Save limit",
   "change": "Change",
-  "somethingWentWrong": "Oops, something went wrong...",
+  "somethingWentWrong": "Oops, something went wrong…",
   "tryAgain": "Try again",
-  "newCategory": "New Category",
+  "newCategory": "New category",
   "create": "Create",
   "categoryAlreadyExists": "A category with this name already exists",
-  "categoryType": "Category Type",
+  "categoryType": "Category type",
   "expense": "Expense",
   "incomeType": "Income",
-  "catFood": "Food & Drinks",
+  "catFood": "Food & drinks",
   "catTransport": "Transport",
   "catShopping": "Shopping",
   "catEntertainment": "Entertainment",
   "catHousing": "Housing",
   "catIncome": "Income",
+  "catSalary": "Salary",
+  "otherCategory": "Other",
   "defaultTransactionName": "Transaction",
+  "amountRequired": "Enter an amount greater than zero",
   "january": "January",
   "february": "February",
   "march": "March",
@@ -78,15 +84,89 @@
   "fri": "Fri",
   "sat": "Sat",
   "sun": "Sun",
-  "monthlyBudgets": "Monthly Budgets",
-  "establishedLimits": "Established Limits",
-  "addLimit": "Add Limit",
+  "monthlyBudgets": "Monthly budgets",
+  "establishedLimits": "Set limits",
+  "addLimit": "Add limit",
   "selectLanguage": "Choose language",
   "selectCurrency": "Choose currency",
   "limitNotSet": "Not set",
   "exportSuccess": "Export saved",
   "exportFailed": "Couldn't export",
   "currencyUah": "Hryvnia",
-  "currencyUsd": "US Dollar",
-  "currencyEur": "Euro"
+  "currencyUsd": "US dollar",
+  "currencyEur": "Euro",
+  "insightNoData": "No expenses this month.",
+  "insightTopSpend": "🔥 You spend the most on \"{category}\" ({percent}% of expenses).",
+  "@insightTopSpend": {
+    "placeholders": {
+      "category": { "type": "String" },
+      "percent": { "type": "String" }
+    }
+  },
+  "analyticsError": "Couldn't calculate analytics.",
+  "goalsTitle": "Goals & savings",
+  "goalsEmpty": "No active goals yet.\nCreate a jar to start saving.",
+  "goalsSaved": "Saved: {amount}",
+  "@goalsSaved": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "goalsTarget": "Goal: {amount}",
+  "@goalsTarget": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "goalsTopUp": "Add money",
+  "goalsNew": "New goal",
+  "goalsCreateTitle": "Create a savings jar",
+  "goalsNameHint": "Goal name",
+  "goalsAmountHint": "Target amount ({symbol})",
+  "@goalsAmountHint": {
+    "placeholders": {
+      "symbol": { "type": "String" }
+    }
+  },
+  "goalsIconLabel": "Icon",
+  "goalsCreate": "Create goal",
+  "goalsCancel": "Cancel",
+  "goalsDepositTitle": "Add to \"{title}\"",
+  "@goalsDepositTitle": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "goalsDepositAmount": "Amount ({symbol})",
+  "@goalsDepositAmount": {
+    "placeholders": {
+      "symbol": { "type": "String" }
+    }
+  },
+  "goalsDeposit": "Add",
+  "goalsDeleteTitle": "Delete goal?",
+  "goalsDeleteConfirm": "Delete \"{title}\" and its progress?",
+  "@goalsDeleteConfirm": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "goalsDelete": "Delete",
+  "exportColId": "ID",
+  "exportColDate": "Date",
+  "exportColName": "Name",
+  "exportColCategory": "Category",
+  "exportColAmount": "Amount",
+  "exportColType": "Type",
+  "exportNoCategory": "Uncategorized",
+  "exportShareText": "Lumina report for {month}.{year}",
+  "@exportShareText": {
+    "placeholders": {
+      "month": { "type": "String" },
+      "year": { "type": "String" }
+    }
+  },
+  "matrixIncomeTotal": "Income total",
+  "matrixExpenseTotal": "Expense total",
+  "matrixNet": "Net"
 }

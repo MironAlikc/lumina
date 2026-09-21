@@ -1,30 +1,30 @@
 import 'package:hive/hive.dart';
+import 'package:lumina/core/database/hive_client.dart';
+import 'package:lumina/core/services/supabase_sync_service.dart';
+import 'package:lumina/features/history/domain/entities/history_expense.dart';
+import 'package:lumina/features/history/domain/repositories/history_repository.dart';
+import 'package:lumina/features/history/data/models/history_expense_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../../core/services/supabase_sync_service.dart';
-import '../../domain/entities/history_expense.dart';
-import '../../domain/repositories/history_repository.dart';
-import '../models/history_expense_model.dart';
 
 class HistoryRepositoryImpl implements IHistoryRepository {
-  final SupabaseSyncService _syncService;
-
   HistoryRepositoryImpl({SupabaseSyncService? syncService})
     : _syncService = syncService ?? SupabaseSyncService();
 
+  final SupabaseSyncService _syncService;
+
   Box<HistoryExpenseModel> get _box =>
-      Hive.box<HistoryExpenseModel>('history_box');
+      Hive.box<HistoryExpenseModel>(HiveClient.boxName);
 
   @override
   List<HistoryExpense> getAllExpenses() {
-    final models = _box.values.toList();
-    models.sort((a, b) => b.date.compareTo(a.date));
+    final models = _box.values.toList()
+      ..sort((a, b) => b.date.compareTo(a.date));
     return models.map((model) => model.toEntity()).toList();
   }
 
   @override
   Future<void> saveExpense(HistoryExpense expense) async {
-    final model = HistoryExpenseModel.fromEntity(expense);
-    await _box.put(model.id, model);
+    await _box.put(expense.id, HistoryExpenseModel.fromEntity(expense));
   }
 
   @override
@@ -33,13 +33,9 @@ class HistoryRepositoryImpl implements IHistoryRepository {
 
     final model = HistoryExpenseModel.fromEntity(expense);
     final success = await _syncService.syncRecord(model);
+    if (!success) return;
 
-    if (success) {
-      final syncedModel = model.copyWith(isSynced: true);
-      await _box.put(syncedModel.id, syncedModel);
-    } else {
-      throw Exception('Failed to synchronize record with Supabase cloud.');
-    }
+    await _box.put(model.id, model.copyWith(isSynced: true));
   }
 
   @override
@@ -50,22 +46,18 @@ class HistoryRepositoryImpl implements IHistoryRepository {
   @override
   Future<void> deleteFromCloud(String id) async {
     if (!_syncService.isAuthenticated) return;
-
     try {
-      final supabase = Supabase.instance.client;
-      await supabase.from('expenses').delete().eq('id', id);
-    } catch (e) {
-      rethrow;
-    }
+      await Supabase.instance.client.from('expenses').delete().eq('id', id);
+    } catch (_) {}
   }
 
   @override
   Future<void> syncUnsyncedRecords() async {
-    final unsyncedModels = _box.values.where((r) => !r.isSynced).toList();
-    if (unsyncedModels.isEmpty) return;
+    final unsynced = _box.values.where((r) => !r.isSynced).toList();
+    if (unsynced.isEmpty) return;
 
-    final syncedIds = await _syncService.syncPool(unsyncedModels);
-    for (var id in syncedIds) {
+    final syncedIds = await _syncService.syncPool(unsynced);
+    for (final id in syncedIds) {
       final localItem = _box.get(id);
       if (localItem != null) {
         await _box.put(id, localItem.copyWith(isSynced: true));

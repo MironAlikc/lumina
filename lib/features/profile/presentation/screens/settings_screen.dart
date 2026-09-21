@@ -11,7 +11,6 @@ import 'package:lumina/features/history/presentation/cubits/categories_cubit.dar
 import 'package:lumina/features/history/presentation/cubits/categories_state.dart';
 import 'package:lumina/features/history/presentation/cubits/history_cubit.dart';
 import 'package:lumina/features/history/presentation/cubits/history_state.dart';
-import 'package:lumina/features/history/presentation/screens/recurring_screen.dart';
 import 'package:lumina/l10n/app_localizations.dart';
 import 'package:lumina/presentation/cubits/currency/currency_cubit.dart';
 import 'package:lumina/presentation/widgets/currency_settings_tile.dart';
@@ -27,172 +26,119 @@ class SettingsScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: LuminaColors.background,
-      body: BlocBuilder<HistoryCubit, HistoryState>(
-        buildWhen: (prev, next) =>
-            prev.budgetLimit != next.budgetLimit ||
-            prev.allRecords != next.allRecords ||
-            prev.selectedMonth != next.selectedMonth ||
-            prev.selectedYear != next.selectedYear,
-        builder: (context, state) {
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics(),
-                ),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxWidth: isTablet ? 700 : double.infinity,
-                      ),
-                      child: Padding(
-                        padding: EdgeInsets.fromLTRB(
-                          LuminaDimensions.paddingXL,
-                          LuminaDimensions.paddingM,
-                          LuminaDimensions.paddingXL,
-                          MediaQuery.paddingOf(context).bottom + 98,
+      body: SafeArea(
+        bottom: false,
+        child: BlocBuilder<HistoryCubit, HistoryState>(
+          buildWhen: (prev, next) =>
+              prev.budgetLimit != next.budgetLimit ||
+              prev.allRecords != next.allRecords ||
+              prev.selectedMonth != next.selectedMonth ||
+              prev.selectedYear != next.selectedYear,
+          builder: (context, state) {
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: isTablet ? 700 : double.infinity,
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _ProfileCard(loc: loc),
-                            const SizedBox(height: 32),
-                            Text(
-                              loc.budgetManagement,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: LuminaColors.textMain,
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(
+                            LuminaDimensions.paddingXL,
+                            LuminaDimensions.paddingM,
+                            LuminaDimensions.paddingXL,
+                            MediaQuery.paddingOf(context).bottom + 98,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _ProfileCard(loc: loc),
+                              const SizedBox(height: 32),
+                              Text(
+                                loc.budgetManagement,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: LuminaColors.textMain,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 16),
-                            _BudgetSlider(state: state, loc: loc),
-                            const SizedBox(height: 16),
-                            _SettingsTile(
-                              icon: Icons.pie_chart_outline_rounded,
-                              iconColor: LuminaColors.primary,
-                              title: loc.categoryBudgets,
-                              trailing: const Icon(
-                                Icons.arrow_forward_ios_rounded,
-                                size: 16,
-                                color: LuminaColors.textSecondary,
+                              const SizedBox(height: 16),
+                              _BudgetSlider(state: state, loc: loc),
+                              const SizedBox(height: 16),
+                              _SettingsTile(
+                                icon: Icons.pie_chart_outline_rounded,
+                                iconColor: LuminaColors.primary,
+                                title: loc.categoryBudgets,
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  final catState = context
+                                      .read<CategoriesCubit>()
+                                      .state;
+                                  final categories =
+                                      catState is CategoriesLoaded
+                                      ? catState.categories
+                                      : const <CustomCategory>[];
+                                  context.pushNamed(
+                                    'budgets',
+                                    extra: {
+                                      'categories': categories,
+                                      'allRecords': state.allRecords,
+                                    },
+                                  );
+                                },
                               ),
-                              onTap: () {
-                                HapticFeedback.lightImpact();
-                                final catState = context
-                                    .read<CategoriesCubit>()
-                                    .state;
-                                final categories = catState is CategoriesLoaded
-                                    ? catState.categories
-                                    : const <CustomCategory>[];
-                                context.pushNamed(
-                                  'budgets',
-                                  extra: {
-                                    'categories': categories,
-                                    'allRecords': state.allRecords,
-                                  },
-                                );
-                              },
-                            ),
-                            _SettingsTile(
-                              icon: Icons.savings_rounded,
-                              iconColor: LuminaColors.success,
-                              title: loc.goalsAndSavings,
-                              trailing: const Icon(
-                                Icons.arrow_forward_ios_rounded,
-                                size: 16,
-                                color: LuminaColors.textSecondary,
+                              _SettingsTile(
+                                icon: Icons.savings_rounded,
+                                iconColor: LuminaColors.success,
+                                title: loc.goalsAndSavings,
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  context.pushNamed('goals');
+                                },
                               ),
-                              onTap: () {
-                                HapticFeedback.lightImpact();
-                                context.pushNamed('goals');
-                              },
-                            ),
-                            const SizedBox(height: 32),
-                            Text(
-                              loc.appSection,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: LuminaColors.textMain,
+                              const SizedBox(height: 32),
+                              Text(
+                                loc.appSection,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: LuminaColors.textMain,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 16),
-                            _SettingsTile(
-                              icon: Icons.repeat_rounded,
-                              iconColor: LuminaColors.primary,
-                              title: loc.recurringPayments,
-                              trailing: const Icon(
-                                Icons.arrow_forward_ios_rounded,
-                                size: 16,
-                                color: LuminaColors.textSecondary,
+                              const SizedBox(height: 16),
+                              _SettingsTile(
+                                icon: Icons.repeat_rounded,
+                                iconColor: LuminaColors.primary,
+                                title: loc.recurringPayments,
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  context.pushNamed('recurring');
+                                },
                               ),
-                              onTap: () {
-                                HapticFeedback.lightImpact();
-                                Navigator.of(context).push(
-                                  MaterialPageRoute<void>(
-                                    builder: (_) => const RecurringScreen(),
-                                  ),
-                                );
-                              },
-                            ),
-                            _SettingsTile(
-                              icon: Icons.table_chart_rounded,
-                              iconColor: LuminaColors.success,
-                              title: loc.exportToExcel,
-                              trailing: const Icon(
-                                Icons.arrow_forward_ios_rounded,
-                                size: 16,
-                                color: LuminaColors.textSecondary,
-                              ),
-                              onTap: () => _export(context, state, loc),
-                            ),
-                            const CurrencySettingsTile(),
-                            const LanguageSettingsTile(),
-                          ],
+                              _ExportTile(state: state, loc: loc),
+                              const CurrencySettingsTile(),
+                              const LanguageSettingsTile(),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              );
-            },
-          );
-        },
+                );
+              },
+            );
+          },
+        ),
       ),
     );
-  }
-
-  Future<void> _export(
-    BuildContext context,
-    HistoryState state,
-    AppLocalizations loc,
-  ) async {
-    HapticFeedback.lightImpact();
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      final catState = context.read<CategoriesCubit>().state;
-      final categories = catState is CategoriesLoaded
-          ? catState.categories
-          : const <CustomCategory>[];
-
-      final expenseModels = state.allRecords
-          .map(HistoryExpenseModel.fromEntity)
-          .toList();
-
-      await ExportService.exportMonthToCSV(
-        expenseModels,
-        categories,
-        state.selectedMonth,
-        state.selectedYear,
-      );
-
-      messenger.showSnackBar(SnackBar(content: Text(loc.exportSuccess)));
-    } catch (_) {
-      messenger.showSnackBar(SnackBar(content: Text(loc.exportFailed)));
-    }
   }
 }
 
@@ -235,6 +181,7 @@ class _ProfileCard extends StatelessWidget {
                     color: LuminaColors.textMain,
                   ),
                 ),
+                const SizedBox(height: 2),
                 Text(
                   loc.localProfile,
                   style: const TextStyle(color: LuminaColors.textSecondary),
@@ -292,20 +239,105 @@ class _BudgetSlider extends StatelessWidget {
               ),
             ],
           ),
-          Slider(
-            value: limit,
-            min: 0,
-            max: 100000,
-            divisions: 20,
-            label: label,
-            activeColor: LuminaColors.primary,
-            onChanged: (value) {
-              HapticFeedback.selectionClick();
-              context.read<HistoryCubit>().updateBudgetLimit(value);
-            },
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              trackHeight: 4,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+            ),
+            child: Slider(
+              value: limit,
+              min: 0,
+              max: 100000,
+              divisions: 20,
+              label: label,
+              activeColor: LuminaColors.primary,
+              onChanged: (value) {
+                HapticFeedback.selectionClick();
+                context.read<HistoryCubit>().updateBudgetLimit(value);
+              },
+            ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ExportTile extends StatefulWidget {
+  const _ExportTile({required this.state, required this.loc});
+
+  final HistoryState state;
+  final AppLocalizations loc;
+
+  @override
+  State<_ExportTile> createState() => _ExportTileState();
+}
+
+class _ExportTileState extends State<_ExportTile> {
+  bool _busy = false;
+
+  Future<void> _export() async {
+    if (_busy) return;
+    HapticFeedback.lightImpact();
+    setState(() => _busy = true);
+
+    final loc = widget.loc;
+    final state = widget.state;
+    final messenger = ScaffoldMessenger.of(context);
+
+    try {
+      final catState = context.read<CategoriesCubit>().state;
+      final categories = catState is CategoriesLoaded
+          ? catState.categories
+          : const <CustomCategory>[];
+
+      await ExportService.exportMonthToCSV(
+        state.allRecords.map(HistoryExpenseModel.fromEntity).toList(),
+        categories,
+        state.selectedMonth,
+        state.selectedYear,
+        loc,
+      );
+
+      messenger.showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 110),
+          content: Text(loc.exportSuccess),
+        ),
+      );
+    } catch (_) {
+      messenger.showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 110),
+          content: Text(loc.exportFailed),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _SettingsTile(
+      icon: Icons.table_chart_rounded,
+      iconColor: LuminaColors.success,
+      title: widget.loc.exportToExcel,
+      trailing: _busy
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 16,
+              color: LuminaColors.textSecondary,
+            ),
+      onTap: _busy ? () {} : _export,
     );
   }
 }
@@ -315,15 +347,15 @@ class _SettingsTile extends StatelessWidget {
     required this.icon,
     required this.iconColor,
     required this.title,
-    required this.trailing,
     required this.onTap,
+    this.trailing,
   });
 
   final IconData icon;
   final Color iconColor;
   final String title;
-  final Widget trailing;
   final VoidCallback onTap;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -349,7 +381,13 @@ class _SettingsTile extends StatelessWidget {
             color: LuminaColors.textMain,
           ),
         ),
-        trailing: trailing,
+        trailing:
+            trailing ??
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 16,
+              color: LuminaColors.textSecondary,
+            ),
         onTap: onTap,
       ),
     );

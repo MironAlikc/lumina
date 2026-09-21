@@ -12,7 +12,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appName => 'Lumina';
 
   @override
-  String get pureBalance => 'Pure balance';
+  String get pureBalance => 'Net balance';
 
   @override
   String get limit => 'Limit';
@@ -60,40 +60,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get incomeFilter => 'Income';
 
   @override
-  String get settingsTitle => 'Profile Settings';
+  String get settingsTitle => 'Profile settings';
 
   @override
-  String get myWallet => 'My Wallet';
+  String get myWallet => 'My wallet';
 
   @override
-  String get localProfile => 'Lumina Local Profile';
+  String get localProfile => 'Lumina local profile';
 
   @override
-  String get budgetManagement => 'Budget Management';
+  String get budgetManagement => 'Budget management';
 
   @override
   String get monthlyLimit => 'Monthly limit';
 
   @override
-  String get appSection => 'Application';
+  String get appSection => 'App';
 
   @override
-  String get categoryBudgets => 'Category Budgets';
+  String get categoryBudgets => 'Category budgets';
 
   @override
-  String get goalsAndSavings => 'Goals & Savings';
+  String get goalsAndSavings => 'Goals & savings';
 
   @override
-  String get recurringPayments => 'Recurring Payments';
+  String get recurringPayments => 'Recurring payments';
 
   @override
   String get exportToExcel => 'Export to Excel';
 
   @override
-  String get interfaceCurrency => 'Interface Currency';
+  String get interfaceCurrency => 'Currency';
 
   @override
-  String get interfaceLanguage => 'Interface Language';
+  String get interfaceLanguage => 'Language';
 
   @override
   String get transactionDate => 'Transaction date';
@@ -108,10 +108,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get confirm => 'Confirm';
 
   @override
-  String get addNote => 'Add a note...';
+  String get addNote => 'Add a note…';
 
   @override
   String get done => 'Done';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get save => 'Save';
+
+  @override
+  String get delete => 'Delete';
 
   @override
   String get noRecurringPayments =>
@@ -133,7 +142,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chooseCategory => 'Choose category';
 
   @override
-  String get monthlyLimitLabel => 'Monthly limit (₴)';
+  String get monthlyLimitLabel => 'Monthly limit';
 
   @override
   String get saveLimit => 'Save limit';
@@ -142,13 +151,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get change => 'Change';
 
   @override
-  String get somethingWentWrong => 'Oops, something went wrong...';
+  String get somethingWentWrong => 'Oops, something went wrong…';
 
   @override
   String get tryAgain => 'Try again';
 
   @override
-  String get newCategory => 'New Category';
+  String get newCategory => 'New category';
 
   @override
   String get create => 'Create';
@@ -158,7 +167,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'A category with this name already exists';
 
   @override
-  String get categoryType => 'Category Type';
+  String get categoryType => 'Category type';
 
   @override
   String get expense => 'Expense';
@@ -167,7 +176,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get incomeType => 'Income';
 
   @override
-  String get catFood => 'Food & Drinks';
+  String get catFood => 'Food & drinks';
 
   @override
   String get catTransport => 'Transport';
@@ -185,7 +194,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get catIncome => 'Income';
 
   @override
+  String get catSalary => 'Salary';
+
+  @override
+  String get otherCategory => 'Other';
+
+  @override
   String get defaultTransactionName => 'Transaction';
+
+  @override
+  String get amountRequired => 'Enter an amount greater than zero';
 
   @override
   String get january => 'January';
@@ -245,13 +263,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sun => 'Sun';
 
   @override
-  String get monthlyBudgets => 'Monthly Budgets';
+  String get monthlyBudgets => 'Monthly budgets';
 
   @override
-  String get establishedLimits => 'Established Limits';
+  String get establishedLimits => 'Set limits';
 
   @override
-  String get addLimit => 'Add Limit';
+  String get addLimit => 'Add limit';
 
   @override
   String get selectLanguage => 'Choose language';
@@ -272,8 +290,121 @@ class AppLocalizationsEn extends AppLocalizations {
   String get currencyUah => 'Hryvnia';
 
   @override
-  String get currencyUsd => 'US Dollar';
+  String get currencyUsd => 'US dollar';
 
   @override
   String get currencyEur => 'Euro';
+
+  @override
+  String get insightNoData => 'No expenses this month.';
+
+  @override
+  String insightTopSpend(String category, String percent) {
+    return '🔥 You spend the most on \"$category\" ($percent% of expenses).';
+  }
+
+  @override
+  String get analyticsError => 'Couldn\'t calculate analytics.';
+
+  @override
+  String get goalsTitle => 'Goals & savings';
+
+  @override
+  String get goalsEmpty =>
+      'No active goals yet.\nCreate a jar to start saving.';
+
+  @override
+  String goalsSaved(String amount) {
+    return 'Saved: $amount';
+  }
+
+  @override
+  String goalsTarget(String amount) {
+    return 'Goal: $amount';
+  }
+
+  @override
+  String get goalsTopUp => 'Add money';
+
+  @override
+  String get goalsNew => 'New goal';
+
+  @override
+  String get goalsCreateTitle => 'Create a savings jar';
+
+  @override
+  String get goalsNameHint => 'Goal name';
+
+  @override
+  String goalsAmountHint(String symbol) {
+    return 'Target amount ($symbol)';
+  }
+
+  @override
+  String get goalsIconLabel => 'Icon';
+
+  @override
+  String get goalsCreate => 'Create goal';
+
+  @override
+  String get goalsCancel => 'Cancel';
+
+  @override
+  String goalsDepositTitle(String title) {
+    return 'Add to \"$title\"';
+  }
+
+  @override
+  String goalsDepositAmount(String symbol) {
+    return 'Amount ($symbol)';
+  }
+
+  @override
+  String get goalsDeposit => 'Add';
+
+  @override
+  String get goalsDeleteTitle => 'Delete goal?';
+
+  @override
+  String goalsDeleteConfirm(String title) {
+    return 'Delete \"$title\" and its progress?';
+  }
+
+  @override
+  String get goalsDelete => 'Delete';
+
+  @override
+  String get exportColId => 'ID';
+
+  @override
+  String get exportColDate => 'Date';
+
+  @override
+  String get exportColName => 'Name';
+
+  @override
+  String get exportColCategory => 'Category';
+
+  @override
+  String get exportColAmount => 'Amount';
+
+  @override
+  String get exportColType => 'Type';
+
+  @override
+  String get exportNoCategory => 'Uncategorized';
+
+  @override
+  String exportShareText(String month, String year) {
+    return 'Lumina report for $month.$year';
+  }
+
+  @override
+  String get matrixIncomeTotal => 'Income total';
+
+  @override
+  String get matrixExpenseTotal => 'Expense total';
+
+  @override
+  String get matrixNet => 'Net';
 }

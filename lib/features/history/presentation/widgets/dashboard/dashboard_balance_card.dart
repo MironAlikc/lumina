@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import 'package:lumina/core/theme/lumina_colors.dart';
 import 'package:lumina/core/theme/lumina_dimensions.dart';
 import 'package:lumina/features/history/presentation/cubits/history_state.dart';
@@ -7,9 +8,9 @@ import 'package:lumina/l10n/app_localizations.dart';
 import 'package:lumina/presentation/cubits/currency/currency_cubit.dart';
 
 class DashboardBalanceCard extends StatelessWidget {
-  final HistoryState state;
-
   const DashboardBalanceCard({super.key, required this.state});
+
+  final HistoryState state;
 
   static Widget sliver({required HistoryState state, Key? key}) {
     return SliverToBoxAdapter(
@@ -20,14 +21,22 @@ class DashboardBalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appLoc = AppLocalizations.of(context)!;
-    final currencySymbol = context.watch<CurrencyCubit>().state.symbol;
-    final double limit = state.budgetLimit;
-    final double totalExpense = state.totalExpenses;
-    final double progress = (limit > 0)
-        ? (totalExpense / limit).clamp(0.0, 1.0)
-        : 0.0;
-    final bool isOverLimit = limit > 0 && totalExpense > limit;
+    final loc = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).toString();
+    final symbol = context.watch<CurrencyCubit>().state.symbol;
+
+    final precise = NumberFormat.decimalPattern(locale)
+      ..minimumFractionDigits = 2
+      ..maximumFractionDigits = 2;
+    final whole = NumberFormat.decimalPattern(locale)
+      ..maximumFractionDigits = 0;
+
+    final limit = state.budgetLimit;
+    final totalExpense = state.totalExpenses;
+    final hasLimit = limit > 0;
+    final progress = hasLimit ? (totalExpense / limit).clamp(0.0, 1.0) : 0.0;
+    final isOverLimit = hasLimit && totalExpense > limit;
+    final isNegative = state.totalBalance < 0;
 
     return Container(
       margin: const EdgeInsets.symmetric(
@@ -51,56 +60,53 @@ class DashboardBalanceCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 3,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: LuminaColors.accent,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(width: LuminaDimensions.paddingS),
-                  Text(
-                    appLoc.pureBalance.toUpperCase(),
-                    style: const TextStyle(
-                      color: LuminaColors.textSecondary,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                ],
-              ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
-                ),
+                width: 3,
+                height: 12,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.65),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: LuminaColors.cardMintBorder,
-                    width: 0.8,
-                  ),
+                  color: LuminaColors.accent,
+                  borderRadius: BorderRadius.circular(2),
                 ),
+              ),
+              const SizedBox(width: LuminaDimensions.paddingS),
+              Expanded(
                 child: Text(
-                  '${appLoc.limit}: ${limit.toStringAsFixed(0)} $currencySymbol',
+                  loc.pureBalance.toUpperCase(),
                   style: const TextStyle(
-                    color: LuminaColors.accentDeep,
+                    color: LuminaColors.textSecondary,
                     fontSize: 11,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.2,
                   ),
                 ),
               ),
+              if (hasLimit)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.65),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: LuminaColors.cardMintBorder,
+                      width: 0.8,
+                    ),
+                  ),
+                  child: Text(
+                    '${loc.limit}: ${whole.format(limit)} $symbol',
+                    style: const TextStyle(
+                      color: LuminaColors.accentDeep,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 14),
-
           if (isOverLimit) ...[
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -116,12 +122,14 @@ class DashboardBalanceCard extends StatelessWidget {
                     size: 18,
                   ),
                   const SizedBox(width: LuminaDimensions.paddingS),
-                  Text(
-                    appLoc.overLimit,
-                    style: const TextStyle(
-                      color: LuminaColors.errorDeep,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                  Expanded(
+                    child: Text(
+                      loc.overLimit,
+                      style: const TextStyle(
+                        color: LuminaColors.errorDeep,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],
@@ -129,104 +137,111 @@ class DashboardBalanceCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
           ],
-
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                '${state.totalBalance < 0 ? '-' : ''}${state.totalBalance.abs().toStringAsFixed(2)}',
-                style: const TextStyle(
-                  color: LuminaColors.textMain,
-                  fontSize: 32,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  '${isNegative ? '-' : ''}${precise.format(state.totalBalance.abs())}',
+                  style: TextStyle(
+                    color: isNegative
+                        ? LuminaColors.error
+                        : LuminaColors.textMain,
+                    fontSize: 32,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                currencySymbol,
-                style: const TextStyle(
-                  color: LuminaColors.textSecondary,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
+                const SizedBox(width: 6),
+                Text(
+                  symbol,
+                  style: const TextStyle(
+                    color: LuminaColors.textSecondary,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 18),
-
           Row(
             children: [
               Expanded(
-                child: _buildMiniStat(
-                  title: appLoc.income,
-                  amount:
-                      '+${state.totalIncomes.toStringAsFixed(0)} $currencySymbol',
+                child: _MiniStat(
+                  title: loc.income,
+                  amount: '+${whole.format(state.totalIncomes)} $symbol',
                   icon: Icons.arrow_downward_rounded,
                   color: LuminaColors.success,
-                  cardBorder: LuminaColors.cardMintBorder,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildMiniStat(
-                  title: appLoc.expenses,
-                  amount:
-                      '-${state.totalExpenses.toStringAsFixed(0)} $currencySymbol',
+                child: _MiniStat(
+                  title: loc.expenses,
+                  amount: '-${whole.format(state.totalExpenses)} $symbol',
                   icon: Icons.arrow_upward_rounded,
                   color: LuminaColors.error,
-                  cardBorder: LuminaColors.cardMintBorder,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 18),
-
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  backgroundColor: Colors.white.withValues(alpha: 0.5),
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    isOverLimit ? LuminaColors.error : LuminaColors.accent,
-                  ),
-                  minHeight: 6,
+          if (hasLimit) ...[
+            const SizedBox(height: 18),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: progress,
+                backgroundColor: Colors.white.withValues(alpha: 0.5),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  isOverLimit ? LuminaColors.error : LuminaColors.accent,
                 ),
+                minHeight: 6,
               ),
-              const SizedBox(height: 6),
-              Text(
-                '${totalExpense.toStringAsFixed(0)} / ${limit.toStringAsFixed(0)} $currencySymbol',
-                style: const TextStyle(
-                  color: LuminaColors.textSecondary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${whole.format(totalExpense)} / ${whole.format(limit)} $symbol',
+              style: TextStyle(
+                color: isOverLimit
+                    ? LuminaColors.error
+                    : LuminaColors.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
               ),
-            ],
-          ),
+            ),
+          ],
         ],
       ),
     );
   }
+}
 
-  Widget _buildMiniStat({
-    required String title,
-    required String amount,
-    required IconData icon,
-    required Color color,
-    required Color cardBorder,
-  }) {
+class _MiniStat extends StatelessWidget {
+  const _MiniStat({
+    required this.title,
+    required this.amount,
+    required this.icon,
+    required this.color,
+  });
+
+  final String title;
+  final String amount;
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.65),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: cardBorder.withValues(alpha: 0.7),
+          color: LuminaColors.cardMintBorder.withValues(alpha: 0.7),
           width: 0.8,
         ),
       ),
@@ -256,12 +271,13 @@ class DashboardBalanceCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   amount,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: LuminaColors.textMain,
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                   ),
-                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),

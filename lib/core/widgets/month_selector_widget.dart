@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lumina/core/theme/lumina_colors.dart';
 import 'package:lumina/l10n/app_localizations.dart';
 
 class MonthSelectorWidget extends StatelessWidget {
-  final int selectedMonth;
-  final int selectedYear;
-  final Function(int month, int year) onMonthChanged;
-
   const MonthSelectorWidget({
     super.key,
     required this.selectedMonth,
@@ -14,38 +11,30 @@ class MonthSelectorWidget extends StatelessWidget {
     required this.onMonthChanged,
   });
 
-  String _getMonthName(AppLocalizations loc, int month) {
-    switch (month) {
-      case 1:
-        return loc.january;
-      case 2:
-        return loc.february;
-      case 3:
-        return loc.march;
-      case 4:
-        return loc.april;
-      case 5:
-        return loc.may;
-      case 6:
-        return loc.june;
-      case 7:
-        return loc.july;
-      case 8:
-        return loc.august;
-      case 9:
-        return loc.september;
-      case 10:
-        return loc.october;
-      case 11:
-        return loc.november;
-      case 12:
-        return loc.december;
-      default:
-        return '';
-    }
+  final int selectedMonth;
+  final int selectedYear;
+  final void Function(int month, int year) onMonthChanged;
+
+  String _monthName(AppLocalizations loc, int month) {
+    return switch (month) {
+      1 => loc.january,
+      2 => loc.february,
+      3 => loc.march,
+      4 => loc.april,
+      5 => loc.may,
+      6 => loc.june,
+      7 => loc.july,
+      8 => loc.august,
+      9 => loc.september,
+      10 => loc.october,
+      11 => loc.november,
+      12 => loc.december,
+      _ => '',
+    };
   }
 
   void _previousMonth() {
+    HapticFeedback.selectionClick();
     if (selectedMonth > 1) {
       onMonthChanged(selectedMonth - 1, selectedYear);
     } else {
@@ -54,6 +43,7 @@ class MonthSelectorWidget extends StatelessWidget {
   }
 
   void _nextMonth() {
+    HapticFeedback.selectionClick();
     if (selectedMonth < 12) {
       onMonthChanged(selectedMonth + 1, selectedYear);
     } else {
@@ -64,7 +54,7 @@ class MonthSelectorWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
-    final String monthName = _getMonthName(loc, selectedMonth);
+    final monthName = _monthName(loc, selectedMonth);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
@@ -74,7 +64,6 @@ class MonthSelectorWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: LuminaColors.cardMintBorder.withValues(alpha: 0.6),
-          width: 1,
         ),
         boxShadow: [
           BoxShadow(

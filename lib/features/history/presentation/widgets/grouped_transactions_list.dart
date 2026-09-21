@@ -2,15 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:lumina/core/theme/lumina_theme.dart';
 import 'package:lumina/core/widgets/transaction_tile.dart';
+import 'package:lumina/features/history/data/models/custom_category_model.dart';
+import 'package:lumina/features/history/data/models/history_expense_model.dart';
 import 'package:lumina/l10n/app_localizations.dart';
-import '../../data/models/custom_category_model.dart';
-import '../../data/models/history_expense_model.dart';
 
 class GroupedTransactionsList extends StatelessWidget {
-  final List<HistoryExpenseModel> records;
-  final List<CustomCategory> categories;
-  final String currencySymbol;
-
   const GroupedTransactionsList({
     super.key,
     required this.records,
@@ -18,40 +14,40 @@ class GroupedTransactionsList extends StatelessWidget {
     required this.currencySymbol,
   });
 
+  final List<HistoryExpenseModel> records;
+  final List<CustomCategory> categories;
+  final String currencySymbol;
+
   CustomCategory? _findCategory(HistoryExpenseModel record) {
     for (final cat in categories) {
-      final matchesId =
-          record.categoryId.isNotEmpty && record.categoryId == cat.id;
-      final matchesName =
-          record.categoryName != null &&
-          record.categoryName!.toLowerCase() == cat.name.toLowerCase();
-      if (matchesId || matchesName) return cat;
+      if (record.categoryId.isNotEmpty && record.categoryId == cat.id) {
+        return cat;
+      }
     }
     return null;
   }
 
-  String _formatDateKey(DateTime date, BuildContext context) {
+  String _headerFor(DateTime date, BuildContext context) {
     final loc = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).toString();
-
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final target = DateTime(date.year, date.month, date.day);
 
-    if (target == today) {
-      return loc.today.toUpperCase();
-    } else if (target == today.subtract(const Duration(days: 1))) {
+    if (target == today) return loc.today.toUpperCase();
+    if (target == today.subtract(const Duration(days: 1))) {
       return loc.yesterday.toUpperCase();
-    } else {
-      final pattern = date.year != now.year ? 'd MMMM y' : 'd MMMM';
-      return DateFormat(pattern, locale).format(date);
     }
+
+    final pattern = date.year != now.year ? 'd MMMM y' : 'd MMMM';
+    return DateFormat(pattern, locale).format(target);
   }
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+
     if (records.isEmpty) {
-      final loc = AppLocalizations.of(context)!;
       return SliverToBoxAdapter(
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -63,7 +59,8 @@ class GroupedTransactionsList extends StatelessWidget {
           ),
           child: Center(
             child: Text(
-              loc.noTransactionsYet,
+              loc.noExpensesForMonth,
+              textAlign: TextAlign.center,
               style: TextStyle(
                 color: LuminaTheme.subTitleColor,
                 fontSize: 14,
@@ -75,21 +72,22 @@ class GroupedTransactionsList extends StatelessWidget {
       );
     }
 
-    final sortedRecords = [...records]
-      ..sort((a, b) => b.date.compareTo(a.date));
-
-    final Map<String, List<HistoryExpenseModel>> grouped = {};
-    for (var record in sortedRecords) {
-      final dateKey = _formatDateKey(record.date, context);
-      grouped.putIfAbsent(dateKey, () => []).add(record);
+    final grouped = <DateTime, List<HistoryExpenseModel>>{};
+    final sorted = [...records]..sort((a, b) => b.date.compareTo(a.date));
+    for (final record in sorted) {
+      final key = DateTime(
+        record.date.year,
+        record.date.month,
+        record.date.day,
+      );
+      grouped.putIfAbsent(key, () => []).add(record);
     }
-
-    final dateKeys = grouped.keys.toList();
+    final days = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
 
     return SliverList(
       delegate: SliverChildBuilderDelegate((context, index) {
-        final dateKey = dateKeys[index];
-        final dayTransactions = grouped[dateKey]!;
+        final day = days[index];
+        final dayTransactions = grouped[day]!;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -97,7 +95,7 @@ class GroupedTransactionsList extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
               child: Text(
-                dateKey,
+                _headerFor(day, context),
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -118,7 +116,7 @@ class GroupedTransactionsList extends StatelessWidget {
             ),
           ],
         );
-      }, childCount: dateKeys.length),
+      }, childCount: days.length),
     );
   }
 }

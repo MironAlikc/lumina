@@ -63,7 +63,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settingsTitle => 'Настройки профиля';
 
   @override
-  String get myWallet => 'Мой кошелек';
+  String get myWallet => 'Мой кошелёк';
 
   @override
   String get localProfile => 'Локальный профиль Lumina';
@@ -90,10 +90,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get exportToExcel => 'Экспорт в Excel';
 
   @override
-  String get interfaceCurrency => 'Валюта интерфейса';
+  String get interfaceCurrency => 'Валюта';
 
   @override
-  String get interfaceLanguage => 'Язык интерфейса';
+  String get interfaceLanguage => 'Язык';
 
   @override
   String get transactionDate => 'Дата транзакции';
@@ -108,10 +108,19 @@ class AppLocalizationsRu extends AppLocalizations {
   String get confirm => 'Подтвердить';
 
   @override
-  String get addNote => 'Добавить заметку...';
+  String get addNote => 'Добавить заметку…';
 
   @override
   String get done => 'Готово';
+
+  @override
+  String get cancel => 'Отмена';
+
+  @override
+  String get save => 'Сохранить';
+
+  @override
+  String get delete => 'Удалить';
 
   @override
   String get noRecurringPayments =>
@@ -133,7 +142,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get chooseCategory => 'Выберите категорию';
 
   @override
-  String get monthlyLimitLabel => 'Месячный лимит (₴)';
+  String get monthlyLimitLabel => 'Месячный лимит';
 
   @override
   String get saveLimit => 'Сохранить лимит';
@@ -142,7 +151,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get change => 'Изменить';
 
   @override
-  String get somethingWentWrong => 'Упс, что-то пошло не так...';
+  String get somethingWentWrong => 'Упс, что-то пошло не так…';
 
   @override
   String get tryAgain => 'Повторить';
@@ -160,10 +169,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get categoryType => 'Тип категории';
 
   @override
-  String get expense => 'Расходы';
+  String get expense => 'Расход';
 
   @override
-  String get incomeType => 'Доходы';
+  String get incomeType => 'Доход';
 
   @override
   String get catFood => 'Еда и напитки';
@@ -178,13 +187,22 @@ class AppLocalizationsRu extends AppLocalizations {
   String get catEntertainment => 'Развлечения';
 
   @override
-  String get catHousing => 'Жилье';
+  String get catHousing => 'Жильё';
 
   @override
   String get catIncome => 'Доходы';
 
   @override
+  String get catSalary => 'Зарплата';
+
+  @override
+  String get otherCategory => 'Другое';
+
+  @override
   String get defaultTransactionName => 'Транзакция';
+
+  @override
+  String get amountRequired => 'Введите сумму больше нуля';
 
   @override
   String get january => 'Январь';
@@ -275,4 +293,117 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get currencyEur => 'Евро';
+
+  @override
+  String get insightNoData => 'В этом месяце нет расходов.';
+
+  @override
+  String insightTopSpend(String category, String percent) {
+    return '🔥 Больше всего тратите на «$category» ($percent% от расходов).';
+  }
+
+  @override
+  String get analyticsError => 'Не удалось посчитать аналитику.';
+
+  @override
+  String get goalsTitle => 'Цели и сбережения';
+
+  @override
+  String get goalsEmpty =>
+      'Пока нет активных целей.\nСоздайте копилку, чтобы начать откладывать.';
+
+  @override
+  String goalsSaved(String amount) {
+    return 'Накоплено: $amount';
+  }
+
+  @override
+  String goalsTarget(String amount) {
+    return 'Цель: $amount';
+  }
+
+  @override
+  String get goalsTopUp => 'Пополнить';
+
+  @override
+  String get goalsNew => 'Новая цель';
+
+  @override
+  String get goalsCreateTitle => 'Создать копилку';
+
+  @override
+  String get goalsNameHint => 'Название цели';
+
+  @override
+  String goalsAmountHint(String symbol) {
+    return 'Целевая сумма ($symbol)';
+  }
+
+  @override
+  String get goalsIconLabel => 'Иконка';
+
+  @override
+  String get goalsCreate => 'Создать цель';
+
+  @override
+  String get goalsCancel => 'Отмена';
+
+  @override
+  String goalsDepositTitle(String title) {
+    return 'Пополнить «$title»';
+  }
+
+  @override
+  String goalsDepositAmount(String symbol) {
+    return 'Сумма ($symbol)';
+  }
+
+  @override
+  String get goalsDeposit => 'Внести';
+
+  @override
+  String get goalsDeleteTitle => 'Удалить цель?';
+
+  @override
+  String goalsDeleteConfirm(String title) {
+    return 'Удалить «$title» и весь прогресс?';
+  }
+
+  @override
+  String get goalsDelete => 'Удалить';
+
+  @override
+  String get exportColId => 'ID';
+
+  @override
+  String get exportColDate => 'Дата';
+
+  @override
+  String get exportColName => 'Название';
+
+  @override
+  String get exportColCategory => 'Категория';
+
+  @override
+  String get exportColAmount => 'Сумма';
+
+  @override
+  String get exportColType => 'Тип';
+
+  @override
+  String get exportNoCategory => 'Без категории';
+
+  @override
+  String exportShareText(String month, String year) {
+    return 'Отчёт Lumina за $month.$year';
+  }
+
+  @override
+  String get matrixIncomeTotal => 'Всего доходов';
+
+  @override
+  String get matrixExpenseTotal => 'Всего расходов';
+
+  @override
+  String get matrixNet => 'Баланс';
 }

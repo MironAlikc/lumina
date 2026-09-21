@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lumina/features/history/presentation/widgets/quick_add/air_key.dart';
 
 class AirKeyboard extends StatelessWidget {
-  final ValueChanged<String> onKeyPress;
-
   const AirKeyboard({super.key, required this.onKeyPress});
 
-  static const List<List<String>> _keyboardRows = [
+  final ValueChanged<String> onKeyPress;
+
+  static const _rows = [
     ['1', '2', '3'],
     ['4', '5', '6'],
     ['7', '8', '9'],
@@ -16,7 +17,7 @@ class AirKeyboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
@@ -32,21 +33,25 @@ class AirKeyboard extends StatelessWidget {
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: _keyboardRows.map((rowKeys) => _buildRow(rowKeys)).toList(),
+          children: [
+            for (final row in _rows)
+              Row(
+                children: [
+                  for (final key in row)
+                    Expanded(
+                      child: AirKey(
+                        label: key,
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          onKeyPress(key);
+                        },
+                      ),
+                    ),
+                ],
+              ),
+          ],
         ),
       ),
-    );
-  }
-
-  Widget _buildRow(List<String> keys) {
-    return Row(
-      children: keys
-          .map(
-            (k) => Expanded(
-              child: AirKey(label: k, onTap: () => onKeyPress(k)),
-            ),
-          )
-          .toList(),
     );
   }
 }

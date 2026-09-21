@@ -184,8 +184,9 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                     itemCount: 12,
                     itemBuilder: (context, index) {
                       final monthIndex = index + 1;
-                      final isSelected =
-                          monthIndex == tempMonth && tempYear == tempYear;
+                      // Сравнивается только месяц — год в этом гриде один и
+                      // тот же (tempYear), сравнивать его с самим собой не нужно.
+                      final isSelected = monthIndex == tempMonth;
 
                       return GestureDetector(
                         onTap: () =>
@@ -381,7 +382,11 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                       ),
                     ...currentBudgets.map((budget) {
                       final category = _findCategory(budget.categoryId);
-                      final categoryName = category?.name ?? loc.expense;
+                      // Фолбэк на "otherCategory" — семантически верно, когда
+                      // категория была удалена, в отличие от loc.expense
+                      // ("Расход"), который не про отсутствие категории.
+                      final categoryName =
+                          category?.localizedName(loc) ?? loc.otherCategory;
                       final spent = spentByCategory[budget.categoryId] ?? 0.0;
                       final progress = (spent / budget.limitAmount).clamp(
                         0.0,
@@ -531,7 +536,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: selectedCategoryId,
+                      initialValue: selectedCategoryId,
                       hint: Text(loc.chooseCategory),
                       dropdownColor: LuminaColors.surface,
                       decoration: InputDecoration(
@@ -556,7 +561,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                               Icon(cat.icon, size: 16, color: cat.color),
                               const SizedBox(width: 10),
                               Text(
-                                cat.name,
+                                cat.localizedName(loc),
                                 style: const TextStyle(
                                   color: LuminaColors.textMain,
                                   fontWeight: FontWeight.w500,
