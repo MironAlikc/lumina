@@ -367,7 +367,7 @@ abstract class AppLocalizations {
   /// No description provided for @monthlyLimitLabel.
   ///
   /// In en, this message translates to:
-  /// **'Monthly limit'**
+  /// **'Set a monthly expense limit to control your budget'**
   String get monthlyLimitLabel;
 
   /// No description provided for @saveLimit.
@@ -861,6 +861,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Net'**
   String get matrixNet;
+
+  /// No description provided for @analyticsCategoriesTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Categories'**
+  String get analyticsCategoriesTab;
+
+  /// No description provided for @analyticsTrendTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Trend'**
+  String get analyticsTrendTab;
+
+  /// No description provided for @tapToViewTransactions.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to view transactions'**
+  String get tapToViewTransactions;
+
+  /// No description provided for @moreThanLastMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'+{percent}% vs last month'**
+  String moreThanLastMonth(String percent);
+
+  /// No description provided for @lessThanLastMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'-{percent}% vs last month'**
+  String lessThanLastMonth(String percent);
+
+  /// No description provided for @topTransactions.
+  ///
+  /// In en, this message translates to:
+  /// **'Top transactions'**
+  String get topTransactions;
 }
 
 class _AppLocalizationsDelegate

@@ -21,6 +21,8 @@ Future<void> main() async {
 
   await SystemChrome.setPreferredOrientations(const [
     DeviceOrientation.portraitUp,
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
   ]);
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(

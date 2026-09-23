@@ -20,6 +20,32 @@ class RecentTransactionsList extends StatelessWidget {
   final HistoryState state;
   final int limit;
 
+  CustomCategory? _findCategory(List<CustomCategory> categories, String key) {
+    final needle = key.trim().toLowerCase();
+    if (needle.isEmpty) return null;
+    for (final c in categories) {
+      if (c.id == key || c.id.toLowerCase() == needle) return c;
+      if (c.name.toLowerCase() == needle) return c;
+    }
+    const aliases = {
+      'food': 'cat_food',
+      'food & drinks': 'cat_food',
+      'transport': 'cat_transport',
+      'shopping': 'cat_shopping',
+      'entertainment': 'cat_entertainment',
+      'housing': 'cat_housing',
+      'home': 'cat_housing',
+      'salary': 'cat_salary',
+      'income': 'cat_salary',
+    };
+    final id = aliases[needle];
+    if (id == null) return null;
+    for (final c in categories) {
+      if (c.id == id) return c;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
@@ -58,13 +84,6 @@ class RecentTransactionsList extends StatelessWidget {
         : const <CustomCategory>[];
     final currencySymbol = context.watch<CurrencyCubit>().state.symbol;
 
-    CustomCategory? findCategory(String categoryKey) {
-      for (final c in categories) {
-        if (c.id == categoryKey) return c;
-      }
-      return null;
-    }
-
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       sliver: SliverList.separated(
@@ -74,7 +93,7 @@ class RecentTransactionsList extends StatelessWidget {
           final entity = items[index];
           return TransactionTile(
             record: HistoryExpenseModel.fromEntity(entity),
-            category: findCategory(entity.category),
+            category: _findCategory(categories, entity.category),
             currencySymbol: currencySymbol,
           );
         },

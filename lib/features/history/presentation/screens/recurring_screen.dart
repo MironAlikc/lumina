@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:lumina/core/theme/lumina_colors.dart';
 import 'package:lumina/core/theme/lumina_dimensions.dart';
 import 'package:lumina/features/history/data/models/custom_category_model.dart';
@@ -35,6 +36,11 @@ class _RecurringScreenState extends State<RecurringScreen> {
     if (mounted) setState(() => _box = box);
   }
 
+  void _closeDialog(BuildContext dialogContext) {
+    final nav = Navigator.of(dialogContext, rootNavigator: true);
+    if (nav.canPop()) nav.pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
@@ -64,15 +70,14 @@ class _RecurringScreenState extends State<RecurringScreen> {
                 if (items.isEmpty) {
                   return Center(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: LuminaDimensions.paddingXL,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
                       child: Text(
                         loc.noRecurringPayments,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: LuminaColors.textSecondary,
                           fontSize: 15,
+                          height: 1.4,
                         ),
                       ),
                     ),
@@ -84,12 +89,11 @@ class _RecurringScreenState extends State<RecurringScreen> {
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
                   itemCount: items.length,
                   itemBuilder: (context, index) {
-                    final item = items[index];
                     return _RecurringCard(
-                      item: item,
+                      item: items[index],
                       symbol: symbol,
                       loc: loc,
-                      onDelete: () => _confirmDelete(item, loc),
+                      onDelete: () => _confirmDelete(items[index], loc),
                     );
                   },
                 );
@@ -104,7 +108,7 @@ class _RecurringScreenState extends State<RecurringScreen> {
         ),
         onPressed: () {
           HapticFeedback.lightImpact();
-          _showAddSheet(symbol, loc);
+          _showAddDialog(symbol, loc);
         },
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
@@ -117,16 +121,19 @@ class _RecurringScreenState extends State<RecurringScreen> {
   ) async {
     final ok = await showDialog<bool>(
       context: context,
+      useRootNavigator: true,
+      barrierColor: Colors.black.withValues(alpha: 0.45),
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(loc.delete),
         content: Text(item.productName),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: () => _closeDialog(ctx),
             child: Text(loc.cancel),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(true),
             child: Text(loc.delete),
           ),
         ],
@@ -138,240 +145,277 @@ class _RecurringScreenState extends State<RecurringScreen> {
     }
   }
 
-  void _showAddSheet(String symbol, AppLocalizations loc) {
-    final nameController = TextEditingController();
-    final priceController = TextEditingController();
-    var selectedDay = 1;
-    var isIncome = false;
-    String? selectedCategoryId;
+  void _showAddDialog(String symbol, AppLocalizations loc) {
+    final catState = context.read<CategoriesCubit>().state;
+    final categories = catState is CategoriesLoaded
+        ? catState.categories
+        : const <CustomCategory>[];
 
-    showModalBottomSheet<void>(
+    showDialog<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: LuminaColors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(LuminaDimensions.radiusLarge),
-        ),
+      useRootNavigator: true,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withValues(alpha: 0.45),
+      builder: (ctx) => _AddRecurringDialog(
+        symbol: symbol,
+        loc: loc,
+        categories: categories,
+        onClose: () => _closeDialog(ctx),
       ),
-      builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (context, setModal) {
-            final catState = context.watch<CategoriesCubit>().state;
-            final all = catState is CategoriesLoaded
-                ? catState.categories
-                : const <CustomCategory>[];
-            final categories = all
-                .where((c) => c.type == (isIncome ? 'income' : 'expense'))
-                .toList();
+    );
+  }
+}
 
-            selectedCategoryId ??= categories.isNotEmpty
-                ? categories.first.id
-                : null;
-            if (selectedCategoryId != null &&
-                categories.every((c) => c.id != selectedCategoryId)) {
-              selectedCategoryId = categories.isNotEmpty
-                  ? categories.first.id
-                  : null;
-            }
+class _AddRecurringDialog extends StatefulWidget {
+  const _AddRecurringDialog({
+    required this.symbol,
+    required this.loc,
+    required this.categories,
+    required this.onClose,
+  });
 
-            return Padding(
-              padding: EdgeInsets.only(
-                left: LuminaDimensions.paddingXL,
-                right: LuminaDimensions.paddingXL,
-                top: LuminaDimensions.paddingXL,
-                bottom:
-                    MediaQuery.viewInsetsOf(sheetContext).bottom +
-                    LuminaDimensions.paddingXL,
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+  final String symbol;
+  final AppLocalizations loc;
+  final List<CustomCategory> categories;
+  final VoidCallback onClose;
+
+  @override
+  State<_AddRecurringDialog> createState() => _AddRecurringDialogState();
+}
+
+class _AddRecurringDialogState extends State<_AddRecurringDialog> {
+  final _nameController = TextEditingController();
+  final _priceController = TextEditingController();
+  var _selectedDay = 1;
+  var _isIncome = false;
+  String? _selectedCategoryId;
+  var _saving = false;
+
+  List<CustomCategory> get _visibleCategories => widget.categories
+      .where((c) => c.type == (_isIncome ? 'income' : 'expense'))
+      .toList();
+
+  @override
+  void initState() {
+    super.initState();
+    final first = _visibleCategories;
+    _selectedCategoryId = first.isNotEmpty ? first.first.id : null;
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _priceController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final name = _nameController.text.trim();
+    final price =
+        double.tryParse(_priceController.text.replaceAll(',', '.')) ?? 0;
+    if (name.isEmpty || price <= 0 || _selectedCategoryId == null) {
+      HapticFeedback.heavyImpact();
+      return;
+    }
+    setState(() => _saving = true);
+    await RecurringService.addRecurring(
+      productName: name,
+      price: price,
+      categoryId: _selectedCategoryId!,
+      isIncome: _isIncome,
+      dayOfMonth: _selectedDay,
+    );
+    if (mounted) widget.onClose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = widget.loc;
+    final cats = _visibleCategories;
+    final bottom = MediaQuery.viewInsetsOf(context).bottom;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottom),
+      child: Dialog(
+        backgroundColor: LuminaColors.surface,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        loc.addTemplate,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: LuminaColors.textMain,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: widget.onClose,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _nameController,
+                  autofocus: true,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: InputDecoration(
+                    labelText: loc.defaultTransactionName,
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _priceController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                  ],
+                  decoration: InputDecoration(
+                    labelText: loc.goalsDepositAmount(widget.symbol),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    loc.incomeType,
+                    style: const TextStyle(color: LuminaColors.textMain),
+                  ),
+                  value: _isIncome,
+                  activeThumbColor: LuminaColors.success,
+                  onChanged: (val) {
+                    setState(() {
+                      _isIncome = val;
+                      final next = _visibleCategories;
+                      _selectedCategoryId = next.isNotEmpty
+                          ? next.first.id
+                          : null;
+                    });
+                  },
+                ),
+                Text(
+                  loc.chooseCategory,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: LuminaColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                if (cats.isEmpty)
+                  Text(
+                    loc.noExpensesForPeriod,
+                    style: const TextStyle(color: LuminaColors.textSecondary),
+                  )
+                else
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final cat in cats)
+                        ChoiceChip(
+                          selected: cat.id == _selectedCategoryId,
+                          label: Text(cat.localizedName(loc)),
+                          avatar: Icon(
+                            cat.icon,
+                            size: 16,
+                            color: cat.id == _selectedCategoryId
+                                ? Colors.white
+                                : cat.color,
+                          ),
+                          selectedColor: LuminaColors.primary,
+                          labelStyle: TextStyle(
+                            color: cat.id == _selectedCategoryId
+                                ? Colors.white
+                                : LuminaColors.textMain,
+                          ),
+                          onSelected: (_) {
+                            HapticFeedback.selectionClick();
+                            setState(() => _selectedCategoryId = cat.id);
+                          },
+                        ),
+                    ],
+                  ),
+                const SizedBox(height: 8),
+                Row(
                   children: [
                     Text(
-                      loc.addTemplate,
+                      '${loc.day}: ',
+                      style: const TextStyle(color: LuminaColors.textMain),
+                    ),
+                    Expanded(
+                      child: Slider(
+                        value: _selectedDay.toDouble(),
+                        min: 1,
+                        max: 31,
+                        divisions: 30,
+                        label: '$_selectedDay',
+                        activeColor: LuminaColors.primary,
+                        onChanged: (val) =>
+                            setState(() => _selectedDay = val.toInt()),
+                      ),
+                    ),
+                    Text(
+                      '$_selectedDay',
                       style: const TextStyle(
-                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: LuminaColors.textMain,
                       ),
                     ),
-                    const SizedBox(height: LuminaDimensions.paddingM),
-                    TextField(
-                      controller: nameController,
-                      autofocus: true,
-                      decoration: InputDecoration(
-                        labelText: loc.goalsNameHint,
-                        border: OutlineInputBorder(
-                          borderRadius: LuminaDimensions.borderRadiusMedium,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: LuminaDimensions.paddingS + 4),
-                    TextField(
-                      controller: priceController,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      decoration: InputDecoration(
-                        labelText: loc.goalsDepositAmount(symbol),
-                        border: OutlineInputBorder(
-                          borderRadius: LuminaDimensions.borderRadiusMedium,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: LuminaDimensions.paddingM),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(
-                        loc.incomeType,
-                        style: const TextStyle(color: LuminaColors.textMain),
-                      ),
-                      value: isIncome,
-                      activeThumbColor: LuminaColors.success,
-                      onChanged: (val) {
-                        setModal(() {
-                          isIncome = val;
-                          selectedCategoryId = null;
-                        });
-                      },
-                    ),
-                    Text(
-                      loc.chooseCategory,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: LuminaColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 45,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: categories.length,
-                        itemBuilder: (context, index) {
-                          final cat = categories[index];
-                          final selected = cat.id == selectedCategoryId;
-                          return GestureDetector(
-                            onTap: () =>
-                                setModal(() => selectedCategoryId = cat.id),
-                            child: Container(
-                              margin: const EdgeInsets.only(right: 8),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: selected
-                                    ? LuminaColors.primary
-                                    : LuminaColors.inputFill,
-                                borderRadius:
-                                    LuminaDimensions.borderRadiusMedium,
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    cat.icon,
-                                    size: 16,
-                                    color: selected ? Colors.white : cat.color,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    cat.localizedName(loc),
-                                    style: TextStyle(
-                                      color: selected
-                                          ? Colors.white
-                                          : LuminaColors.textMain,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: LuminaDimensions.paddingS + 4),
-                    Row(
-                      children: [
-                        Text(
-                          '${loc.day}: ',
-                          style: const TextStyle(color: LuminaColors.textMain),
-                        ),
-                        Expanded(
-                          child: Slider(
-                            value: selectedDay.toDouble(),
-                            min: 1,
-                            max: 31,
-                            divisions: 30,
-                            label: '$selectedDay',
-                            activeColor: LuminaColors.primary,
-                            onChanged: (val) =>
-                                setModal(() => selectedDay = val.toInt()),
-                          ),
-                        ),
-                        Text(
-                          '$selectedDay',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: LuminaColors.textMain,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: LuminaDimensions.paddingM),
-                    SizedBox(
-                      width: double.infinity,
-                      height: LuminaDimensions.buttonHeight,
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          final name = nameController.text.trim();
-                          final price =
-                              double.tryParse(
-                                priceController.text.replaceAll(',', '.'),
-                              ) ??
-                              0;
-                          if (name.isEmpty ||
-                              price <= 0 ||
-                              selectedCategoryId == null) {
-                            HapticFeedback.heavyImpact();
-                            return;
-                          }
-                          await RecurringService.addRecurring(
-                            productName: name,
-                            price: price,
-                            categoryId: selectedCategoryId!,
-                            isIncome: isIncome,
-                            dayOfMonth: selectedDay,
-                          );
-                          if (sheetContext.mounted) {
-                            Navigator.pop(sheetContext);
-                          }
-                        },
-                        child: Text(
-                          loc.save,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
-              ),
-            );
-          },
-        );
-      },
-    ).whenComplete(() {
-      nameController.dispose();
-      priceController.dispose();
-    });
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: _saving ? null : _save,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: LuminaColors.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: Text(
+                      loc.save,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -390,18 +434,15 @@ class _RecurringCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final whole = NumberFormat.decimalPattern(
+      Localizations.localeOf(context).toString(),
+    )..maximumFractionDigits = 0;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: LuminaColors.surface,
         borderRadius: LuminaDimensions.borderRadiusLarge,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -454,7 +495,7 @@ class _RecurringCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '${item.isIncome ? '+' : '-'}${item.price.toStringAsFixed(0)} $symbol',
+                  '${item.isIncome ? '+' : '-'}${whole.format(item.price)} $symbol',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,

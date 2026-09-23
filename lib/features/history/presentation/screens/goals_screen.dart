@@ -47,6 +47,11 @@ class _GoalsScreenState extends State<GoalsScreen> {
     await context.read<HistoryCubit>().loadRecords();
   }
 
+  void _closeDialog(BuildContext dialogContext) {
+    final nav = Navigator.of(dialogContext, rootNavigator: true);
+    if (nav.canPop()) nav.pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
@@ -74,17 +79,52 @@ class _GoalsScreenState extends State<GoalsScreen> {
               valueListenable: box.listenable(),
               builder: (context, Box<GoalExpenseModel> goalsBox, _) {
                 final goals = goalsBox.values.toList();
+
                 if (goals.isEmpty) {
                   return Center(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 40),
-                      child: Text(
-                        loc.goalsEmpty,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: LuminaColors.textSecondary,
-                          fontSize: 15,
-                        ),
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text('🎯', style: TextStyle(fontSize: 54)),
+                          const SizedBox(height: 16),
+                          Text(
+                            loc.goalsEmpty,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: LuminaColors.textSecondary,
+                              fontSize: 15,
+                              height: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: LuminaColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 14,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            icon: const Icon(Icons.add_rounded),
+                            label: Text(
+                              loc.goalsNew,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            onPressed: () {
+                              HapticFeedback.lightImpact();
+                              _showAddGoalDialog(symbol);
+                            },
+                          ),
+                        ],
                       ),
                     ),
                   );
@@ -115,15 +155,23 @@ class _GoalsScreenState extends State<GoalsScreen> {
                 );
               },
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: LuminaColors.primary,
-        icon: const Icon(Icons.add_rounded, color: Colors.white),
-        label: Text(loc.goalsNew, style: const TextStyle(color: Colors.white)),
-        onPressed: () {
-          HapticFeedback.lightImpact();
-          _showAddGoalBottomSheet(loc, symbol);
-        },
-      ),
+      floatingActionButton: box != null && box.isNotEmpty
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: FloatingActionButton.extended(
+                backgroundColor: LuminaColors.primary,
+                icon: const Icon(Icons.add_rounded, color: Colors.white),
+                label: Text(
+                  loc.goalsNew,
+                  style: const TextStyle(color: Colors.white),
+                ),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  _showAddGoalDialog(symbol);
+                },
+              ),
+            )
+          : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
@@ -134,17 +182,19 @@ class _GoalsScreenState extends State<GoalsScreen> {
   ) async {
     final ok = await showDialog<bool>(
       context: context,
+      useRootNavigator: true,
+      barrierColor: Colors.black.withValues(alpha: 0.45),
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(loc.goalsDeleteTitle),
         content: Text(loc.goalsDeleteConfirm(goal.title)),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: () => _closeDialog(ctx),
             child: Text(loc.goalsCancel),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(true),
             child: Text(loc.goalsDelete),
           ),
         ],
@@ -164,176 +214,259 @@ class _GoalsScreenState extends State<GoalsScreen> {
     final controller = TextEditingController();
     showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text(loc.goalsDepositTitle(goal.title)),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: InputDecoration(
-            labelText: loc.goalsDepositAmount(symbol),
+      useRootNavigator: true,
+      barrierColor: Colors.black.withValues(alpha: 0.45),
+      builder: (ctx) {
+        final bottom = MediaQuery.viewInsetsOf(ctx).bottom;
+        return Padding(
+          padding: EdgeInsets.only(bottom: bottom),
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            title: Text(loc.goalsDepositTitle(goal.title)),
+            content: TextField(
+              controller: controller,
+              autofocus: true,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: InputDecoration(
+                labelText: loc.goalsDepositAmount(symbol),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => _closeDialog(ctx),
+                child: Text(loc.goalsCancel),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  final amount =
+                      double.tryParse(controller.text.replaceAll(',', '.')) ??
+                      0;
+                  if (amount <= 0) {
+                    HapticFeedback.heavyImpact();
+                    return;
+                  }
+                  final applied = await GoalService.depositToGoal(goal, amount);
+                  if (ctx.mounted) _closeDialog(ctx);
+                  if (applied > 0) await _reloadHistory();
+                },
+                child: Text(loc.goalsDeposit),
+              ),
+            ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(loc.goalsCancel),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final amount =
-                  double.tryParse(controller.text.replaceAll(',', '.')) ?? 0;
-              if (amount <= 0) {
-                HapticFeedback.heavyImpact();
-                return;
-              }
-              final applied = await GoalService.depositToGoal(goal, amount);
-              if (ctx.mounted) Navigator.pop(ctx);
-              if (applied > 0) await _reloadHistory();
-            },
-            child: Text(loc.goalsDeposit),
-          ),
-        ],
-      ),
+        );
+      },
     ).whenComplete(controller.dispose);
   }
 
-  void _showAddGoalBottomSheet(AppLocalizations loc, String symbol) {
-    final titleController = TextEditingController();
-    final targetController = TextEditingController();
-    var selectedIcon = _icons.first;
-
-    showModalBottomSheet<void>(
+  void _showAddGoalDialog(String symbol) {
+    showDialog<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: LuminaColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      useRootNavigator: true,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withValues(alpha: 0.45),
+      builder: (ctx) => _CreateGoalDialog(
+        icons: _icons,
+        symbol: symbol,
+        onClose: () => _closeDialog(ctx),
       ),
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setModal) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: MediaQuery.viewInsetsOf(context).bottom + 20,
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    );
+  }
+}
+
+class _CreateGoalDialog extends StatefulWidget {
+  const _CreateGoalDialog({
+    required this.icons,
+    required this.symbol,
+    required this.onClose,
+  });
+
+  final List<String> icons;
+  final String symbol;
+  final VoidCallback onClose;
+
+  @override
+  State<_CreateGoalDialog> createState() => _CreateGoalDialogState();
+}
+
+class _CreateGoalDialogState extends State<_CreateGoalDialog> {
+  final _titleController = TextEditingController();
+  final _targetController = TextEditingController();
+  late String _selectedIcon;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIcon = widget.icons.first;
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _targetController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save(AppLocalizations loc) async {
+    final title = _titleController.text.trim();
+    final target =
+        double.tryParse(_targetController.text.replaceAll(',', '.')) ?? 0;
+    if (title.isEmpty || target <= 0) {
+      HapticFeedback.heavyImpact();
+      return;
+    }
+    setState(() => _saving = true);
+    await GoalService.addGoal(
+      title: title,
+      targetAmount: target,
+      icon: _selectedIcon,
+      colorValue: 0xFF4CAF50,
+    );
+    if (mounted) widget.onClose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    final bottom = MediaQuery.viewInsetsOf(context).bottom;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottom),
+      child: Dialog(
+        backgroundColor: LuminaColors.surface,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Text(
-                      loc.goalsCreateTitle,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: LuminaColors.textMain,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: titleController,
-                      autofocus: true,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: InputDecoration(labelText: loc.goalsNameHint),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: targetController,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      decoration: InputDecoration(
-                        labelText: loc.goalsAmountHint(symbol),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      loc.goalsIconLabel,
-                      style: const TextStyle(color: LuminaColors.textSecondary),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        for (final icon in _icons)
-                          GestureDetector(
-                            onTap: () {
-                              HapticFeedback.selectionClick();
-                              setModal(() => selectedIcon = icon);
-                            },
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 180),
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: selectedIcon == icon
-                                    ? LuminaColors.primary.withValues(
-                                        alpha: 0.2,
-                                      )
-                                    : LuminaColors.inputFill,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: selectedIcon == icon
-                                      ? LuminaColors.primary
-                                      : Colors.transparent,
-                                ),
-                              ),
-                              child: Text(
-                                icon,
-                                style: const TextStyle(fontSize: 22),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      height: LuminaDimensions.buttonHeight,
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          final title = titleController.text.trim();
-                          final target =
-                              double.tryParse(
-                                targetController.text.replaceAll(',', '.'),
-                              ) ??
-                              0;
-                          if (title.isEmpty || target <= 0) {
-                            HapticFeedback.heavyImpact();
-                            return;
-                          }
-                          await GoalService.addGoal(
-                            title: title,
-                            targetAmount: target,
-                            icon: selectedIcon,
-                            colorValue: 0xFF4CAF50,
-                          );
-                          if (ctx.mounted) Navigator.pop(ctx);
-                        },
-                        child: Text(
-                          loc.goalsCreate,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
+                    Expanded(
+                      child: Text(
+                        loc.goalsCreateTitle,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: LuminaColors.textMain,
                         ),
                       ),
                     ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: widget.onClose,
+                    ),
                   ],
                 ),
-              ),
-            );
-          },
-        );
-      },
-    ).whenComplete(() {
-      titleController.dispose();
-      targetController.dispose();
-    });
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _titleController,
+                  autofocus: true,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: InputDecoration(
+                    labelText: loc.goalsNameHint,
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _targetController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                  ],
+                  decoration: InputDecoration(
+                    labelText: loc.goalsAmountHint(widget.symbol),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  loc.goalsIconLabel,
+                  style: const TextStyle(color: LuminaColors.textSecondary),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final icon in widget.icons)
+                      GestureDetector(
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          setState(() => _selectedIcon = icon);
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          width: 48,
+                          height: 48,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: _selectedIcon == icon
+                                ? LuminaColors.primary.withValues(alpha: 0.2)
+                                : LuminaColors.inputFill,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _selectedIcon == icon
+                                  ? LuminaColors.primary
+                                  : Colors.transparent,
+                            ),
+                          ),
+                          child: Text(
+                            icon,
+                            style: const TextStyle(fontSize: 22),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: _saving ? null : () => _save(loc),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: LuminaColors.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: Text(
+                      loc.goalsCreate,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

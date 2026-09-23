@@ -142,7 +142,8 @@ class AppLocalizationsUk extends AppLocalizations {
   String get chooseCategory => 'Обрати категорію';
 
   @override
-  String get monthlyLimitLabel => 'Місячний ліміт';
+  String get monthlyLimitLabel =>
+      'Встановіть місячний ліміт витрат для контролю бюджету';
 
   @override
   String get saveLimit => 'Зберегти ліміт';
@@ -406,4 +407,26 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get matrixNet => 'Баланс';
+
+  @override
+  String get analyticsCategoriesTab => 'Категорії';
+
+  @override
+  String get analyticsTrendTab => 'Динаміка';
+
+  @override
+  String get tapToViewTransactions => 'Натисніть, щоб переглянути операції';
+
+  @override
+  String moreThanLastMonth(String percent) {
+    return '+$percent% до попереднього місяця';
+  }
+
+  @override
+  String lessThanLastMonth(String percent) {
+    return '-$percent% до попереднього місяця';
+  }
+
+  @override
+  String get topTransactions => 'Топ операцій';
 }

@@ -1,5 +1,10 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
-import '../../domain/entities/history_expense.dart';
+import 'package:lumina/features/history/domain/entities/history_expense.dart';
+
+// ==========================================
+// STATE
+// ==========================================
 
 enum HistoryFilterType { all, expense, income }
 
@@ -7,21 +12,8 @@ enum DateFilterType { all, today, yesterday, thisWeek }
 
 enum HistoryViewMode { list, table }
 
-class HistoryState {
-  final List<HistoryExpense> allRecords;
-  final List<HistoryExpense> filteredRecords;
-  final double totalBalance;
-  final double totalIncomes;
-  final double totalExpenses;
-  final HistoryFilterType activeFilter;
-  final DateFilterType dateFilter;
-  final String? selectedCategoryKey;
-  final int selectedMonth;
-  final int selectedYear;
-  final double budgetLimit;
-  final bool isLoading;
-  final HistoryViewMode viewMode;
-
+@immutable
+class HistoryState extends Equatable {
   HistoryState({
     this.allRecords = const [],
     this.filteredRecords = const [],
@@ -38,6 +30,20 @@ class HistoryState {
     this.viewMode = HistoryViewMode.list,
   }) : selectedMonth = selectedMonth ?? DateTime.now().month,
        selectedYear = selectedYear ?? DateTime.now().year;
+
+  final List<HistoryExpense> allRecords;
+  final List<HistoryExpense> filteredRecords;
+  final double totalBalance;
+  final double totalIncomes;
+  final double totalExpenses;
+  final HistoryFilterType activeFilter;
+  final DateFilterType dateFilter;
+  final String? selectedCategoryKey;
+  final int selectedMonth;
+  final int selectedYear;
+  final double budgetLimit;
+  final bool isLoading;
+  final HistoryViewMode viewMode;
 
   HistoryState copyWith({
     List<HistoryExpense>? allRecords,
@@ -75,27 +81,9 @@ class HistoryState {
   }
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is HistoryState &&
-          listEquals(allRecords, other.allRecords) &&
-          listEquals(filteredRecords, other.filteredRecords) &&
-          totalBalance == other.totalBalance &&
-          totalIncomes == other.totalIncomes &&
-          totalExpenses == other.totalExpenses &&
-          activeFilter == other.activeFilter &&
-          dateFilter == other.dateFilter &&
-          selectedCategoryKey == other.selectedCategoryKey &&
-          selectedMonth == other.selectedMonth &&
-          selectedYear == other.selectedYear &&
-          budgetLimit == other.budgetLimit &&
-          isLoading == other.isLoading &&
-          viewMode == other.viewMode;
-
-  @override
-  int get hashCode => Object.hash(
-    Object.hashAll(allRecords),
-    Object.hashAll(filteredRecords),
+  List<Object?> get props => [
+    allRecords,
+    filteredRecords,
     totalBalance,
     totalIncomes,
     totalExpenses,
@@ -107,5 +95,5 @@ class HistoryState {
     budgetLimit,
     isLoading,
     viewMode,
-  );
+  ];
 }

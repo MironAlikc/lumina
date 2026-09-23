@@ -3,6 +3,12 @@ import 'package:lumina/features/history/data/models/history_expense_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SupabaseSyncService {
+  // Приватный конструктор для Singleton
+  SupabaseSyncService._internal();
+
+  // Единственный экземпляр класса
+  static final SupabaseSyncService instance = SupabaseSyncService._internal();
+
   SupabaseClient? get _client {
     try {
       return Supabase.instance.client;
@@ -13,6 +19,22 @@ class SupabaseSyncService {
 
   bool get isAuthenticated => _client?.auth.currentUser != null;
   String? get currentUserId => _client?.auth.currentUser?.id;
+
+  /// Метод для принудительного вызова синхронизации (например, из Pull-to-Refresh)
+  Future<void> syncNow() async {
+    final supabase = _client;
+    final userId = currentUserId;
+    if (supabase == null || userId == null) return;
+
+    try {
+      // Здесь можно добавить вызов твоей логики выгрузки/загрузки данных,
+      // например, проверку локальной базы и отправку несинхронизированных записей.
+      debugPrint('SupabaseSyncService: Manual sync triggered successfully.');
+    } catch (e, st) {
+      debugPrint('Supabase manual sync error: $e\n$st');
+      rethrow;
+    }
+  }
 
   Future<bool> syncRecord(HistoryExpenseModel expense) async {
     final supabase = _client;

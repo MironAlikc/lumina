@@ -126,5 +126,16 @@
   "exportShareText": "Звіт Lumina за {month}.{year}",
   "matrixIncomeTotal": "Всього доходів",
   "matrixExpenseTotal": "Всього витрат",
-  "matrixNet": "Баланс"
+  "matrixNet": "Баланс",
+  "monthlyLimit": "Місячний ліміт",
+  "monthlyLimitLabel": "Встановіть місячний ліміт витрат для контролю бюджету",
+  "saveLimit": "Зберегти ліміт",
+  "analyticsCategoriesTab": "Категорії",
+  "analyticsTrendTab": "Динаміка",
+  "tapToViewTransactions": "Натисніть, щоб переглянути операції",
+  "moreThanLastMonth": "+{percent}% до попереднього місяця",
+  "@moreThanLastMonth": { "placeholders": { "percent": { "type": "String" } } },
+  "lessThanLastMonth": "-{percent}% до попереднього місяця",
+  "@lessThanLastMonth": { "placeholders": { "percent": { "type": "String" } } },
+  "topTransactions": "Топ операцій"
 }

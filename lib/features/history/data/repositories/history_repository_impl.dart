@@ -8,7 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class HistoryRepositoryImpl implements IHistoryRepository {
   HistoryRepositoryImpl({SupabaseSyncService? syncService})
-    : _syncService = syncService ?? SupabaseSyncService();
+    : _syncService = syncService ?? SupabaseSyncService.instance;
 
   final SupabaseSyncService _syncService;
 

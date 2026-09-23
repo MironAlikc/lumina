@@ -61,8 +61,10 @@ class HistoryCubit extends Cubit<HistoryState> {
   Future<void> loadRecords() async {
     if (isClosed) return;
     emit(state.copyWith(isLoading: true));
+
     await _checkRecurringPayments();
     if (isClosed) return;
+
     _calculateAndEmit(
       _repository.getAllExpenses(),
       state.activeFilter,
@@ -72,6 +74,8 @@ class HistoryCubit extends Cubit<HistoryState> {
       state.selectedYear,
       currentLimit: _getStoredBudgetLimit(),
     );
+
+    // Используем эффективную пакетную синхронизацию из репозитория
     await _syncOfflineRecords();
   }
 
@@ -255,16 +259,12 @@ class HistoryCubit extends Cubit<HistoryState> {
   }
 
   Future<void> _syncOfflineRecords() async {
-    final unsynced = _repository
-        .getAllExpenses()
-        .where((r) => !r.isSynced)
-        .toList();
-    if (unsynced.isEmpty) return;
-    for (final record in unsynced) {
-      try {
-        await _repository.syncWithCloud(record);
-      } catch (_) {}
+    try {
+      // Вызываем пакетную синхронизацию из репозитория
+      await _repository.syncUnsyncedRecords();
+      _refreshState();
+    } catch (e, st) {
+      debugPrint('Batch offline sync error: $e\n$st');
     }
-    _refreshState();
   }
 }

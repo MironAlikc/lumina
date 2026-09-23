@@ -24,6 +24,28 @@ class GroupedTransactionsList extends StatelessWidget {
         return cat;
       }
     }
+    final name = (record.categoryName ?? record.productName)
+        .trim()
+        .toLowerCase();
+    if (name.isEmpty) return null;
+    for (final cat in categories) {
+      if (cat.name.toLowerCase() == name) return cat;
+      if (cat.id == 'cat_food' && (name == 'food' || name == 'food & drinks')) {
+        return cat;
+      }
+      if (cat.id == 'cat_transport' && name == 'transport') return cat;
+      if (cat.id == 'cat_shopping' && name == 'shopping') return cat;
+      if (cat.id == 'cat_entertainment' && name == 'entertainment') {
+        return cat;
+      }
+      if (cat.id == 'cat_housing' && (name == 'housing' || name == 'home')) {
+        return cat;
+      }
+      if ((cat.id == 'cat_salary' || cat.id == 'cat_income') &&
+          (name == 'salary' || name == 'income')) {
+        return cat;
+      }
+    }
     return null;
   }
 

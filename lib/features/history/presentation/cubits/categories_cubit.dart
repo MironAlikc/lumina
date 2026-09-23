@@ -1,6 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive/hive.dart';
+import 'package:lumina/core/database/hive_client.dart';
 import 'package:lumina/features/history/data/models/custom_category_model.dart';
+import 'package:lumina/features/history/data/models/history_expense_model.dart';
 import 'package:lumina/features/history/presentation/cubits/categories_state.dart';
 
 class CategoriesCubit extends Cubit<CategoriesState> {
@@ -10,10 +12,49 @@ class CategoriesCubit extends Cubit<CategoriesState> {
 
   Box<CustomCategory> get _box => Hive.box<CustomCategory>('categories_box');
 
+  static const _aliasToDefaultId = <String, String>{
+    'food': 'cat_food',
+    'food & drinks': 'cat_food',
+    'еда и напитки': 'cat_food',
+    'їжа та напої': 'cat_food',
+    'transport': 'cat_transport',
+    'транспорт': 'cat_transport',
+    'shopping': 'cat_shopping',
+    'покупки': 'cat_shopping',
+    'entertainment': 'cat_entertainment',
+    'развлечения': 'cat_entertainment',
+    'розваги': 'cat_entertainment',
+    'housing': 'cat_housing',
+    'home': 'cat_housing',
+    'жильё': 'cat_housing',
+    'житло': 'cat_housing',
+    'salary': 'cat_salary',
+    'зарплата': 'cat_salary',
+    'income': 'cat_salary',
+    'доход': 'cat_salary',
+    'доходы': 'cat_salary',
+    'доходи': 'cat_salary',
+  };
+
   String _formatCategoryName(String rawName) {
     final trimmed = rawName.trim();
     if (trimmed.isEmpty) return trimmed;
     return trimmed[0].toUpperCase() + trimmed.substring(1);
+  }
+
+  bool _isDuplicateName(String formattedName, {String? exceptId}) {
+    final needle = formattedName.toLowerCase();
+    for (final c in _box.values) {
+      if (c.id == exceptId) continue;
+      if (c.name.toLowerCase() == needle) return true;
+    }
+    final defaultId = _aliasToDefaultId[needle];
+    if (defaultId != null &&
+        defaultId != exceptId &&
+        _box.containsKey(defaultId)) {
+      return true;
+    }
+    return false;
   }
 
   Future<void> loadCategories() async {
@@ -26,6 +67,7 @@ class CategoriesCubit extends Cubit<CategoriesState> {
         }
       } else {
         await _ensureDefaultCategories();
+        await _mergeAliasDuplicates();
       }
 
       final list = _box.values.toList()
@@ -49,6 +91,39 @@ class CategoriesCubit extends Cubit<CategoriesState> {
     }
   }
 
+  Future<void> _mergeAliasDuplicates() async {
+    for (final cat in _box.values.toList()) {
+      if (cat.isDefault) continue;
+      final targetId = _aliasToDefaultId[cat.name.toLowerCase()];
+      if (targetId == null || !_box.containsKey(targetId)) continue;
+      await _remapHistory(fromId: cat.id, intoId: targetId);
+      await _box.delete(cat.id);
+    }
+  }
+
+  Future<void> _remapHistory({
+    required String fromId,
+    required String intoId,
+  }) async {
+    if (!Hive.isBoxOpen(HiveClient.boxName)) return;
+    final history = Hive.box<HistoryExpenseModel>(HiveClient.boxName);
+    for (final rec in history.values.toList()) {
+      if (rec.categoryId != fromId) continue;
+      await history.put(
+        rec.id,
+        HistoryExpenseModel(
+          id: rec.id,
+          date: rec.date,
+          productName: rec.productName,
+          price: rec.price,
+          categoryId: intoId,
+          categoryName: rec.categoryName,
+          type: rec.type,
+        ),
+      );
+    }
+  }
+
   Future<void> addCategory({
     required String name,
     required String iconKey,
@@ -59,10 +134,7 @@ class CategoriesCubit extends Cubit<CategoriesState> {
       final formattedName = _formatCategoryName(name);
       if (formattedName.isEmpty) return;
 
-      final duplicate = _box.values.any(
-        (c) => c.name.toLowerCase() == formattedName.toLowerCase(),
-      );
-      if (duplicate) {
+      if (_isDuplicateName(formattedName)) {
         emit(const CategoriesError('duplicate'));
         await loadCategories();
         return;
@@ -93,11 +165,17 @@ class CategoriesCubit extends Cubit<CategoriesState> {
     required String type,
   }) async {
     try {
+      final formatted = _formatCategoryName(name);
+      if (_isDuplicateName(formatted, exceptId: id)) {
+        emit(const CategoriesError('duplicate'));
+        await loadCategories();
+        return;
+      }
       await _box.put(
         id,
         CustomCategory(
           id: id,
-          name: _formatCategoryName(name),
+          name: formatted,
           iconKey: iconKey,
           colorHex: colorHex,
           type: type,

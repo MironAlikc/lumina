@@ -142,7 +142,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chooseCategory => 'Choose category';
 
   @override
-  String get monthlyLimitLabel => 'Monthly limit';
+  String get monthlyLimitLabel =>
+      'Set a monthly expense limit to control your budget';
 
   @override
   String get saveLimit => 'Save limit';
@@ -407,4 +408,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get matrixNet => 'Net';
+
+  @override
+  String get analyticsCategoriesTab => 'Categories';
+
+  @override
+  String get analyticsTrendTab => 'Trend';
+
+  @override
+  String get tapToViewTransactions => 'Tap to view transactions';
+
+  @override
+  String moreThanLastMonth(String percent) {
+    return '+$percent% vs last month';
+  }
+
+  @override
+  String lessThanLastMonth(String percent) {
+    return '-$percent% vs last month';
+  }
+
+  @override
+  String get topTransactions => 'Top transactions';
 }

@@ -40,7 +40,9 @@ class _CategorySelectorState extends State<CategorySelector> {
     final state = context.read<CategoriesCubit>().state;
     if (state is! CategoriesLoaded) return;
     final next = state.categories.where((c) => c.type == type);
-    if (next.isNotEmpty) widget.onSelected(next.first);
+    if (next.isNotEmpty) {
+      Future.microtask(() => widget.onSelected(next.first));
+    }
   }
 
   void _autoSelectIfNeeded(List<CustomCategory> categories) {
@@ -78,7 +80,9 @@ class _CategorySelectorState extends State<CategorySelector> {
     final created = state.categories.where(
       (c) => !before.contains(c.id) && c.type == _selectedType,
     );
-    if (created.isNotEmpty) widget.onSelected(created.last);
+    if (created.isNotEmpty) {
+      Future.microtask(() => widget.onSelected(created.last));
+    }
   }
 
   @override
