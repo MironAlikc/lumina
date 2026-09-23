@@ -168,5 +168,16 @@
   },
   "matrixIncomeTotal": "Income total",
   "matrixExpenseTotal": "Expense total",
-  "matrixNet": "Net"
+  "matrixNet": "Net",
+  "monthlyLimit": "Monthly limit",
+  "monthlyLimitLabel": "Set a monthly expense limit to control your budget",
+  "saveLimit": "Save limit",
+  "analyticsCategoriesTab": "Categories",
+  "analyticsTrendTab": "Trend",
+  "tapToViewTransactions": "Tap to view transactions",
+  "moreThanLastMonth": "+{percent}% vs last month",
+  "@moreThanLastMonth": { "placeholders": { "percent": { "type": "String" } } },
+  "lessThanLastMonth": "-{percent}% vs last month",
+  "@lessThanLastMonth": { "placeholders": { "percent": { "type": "String" } } },
+  "topTransactions": "Top transactions"
 }

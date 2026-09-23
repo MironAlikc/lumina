@@ -2,6 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lumina/features/analytics/presentation/screens/analytics_screen.dart';
+import 'package:lumina/features/history/data/models/custom_category_model.dart';
+import 'package:lumina/features/history/data/models/history_expense_model.dart';
+import 'package:lumina/features/history/domain/entities/history_expense.dart';
 import 'package:lumina/features/history/presentation/screens/add_transaction_screen.dart';
 import 'package:lumina/features/history/presentation/screens/budgets_screen.dart';
 import 'package:lumina/features/history/presentation/screens/dashboard_screen.dart';
@@ -39,6 +42,11 @@ final GoRouter appRouter = GoRouter(
           path: '/settings',
           builder: (context, state) => const SettingsScreen(),
         ),
+        GoRoute(
+          name: 'goals',
+          path: '/goals',
+          builder: (context, state) => const GoalsScreen(),
+        ),
       ],
     ),
     GoRoute(
@@ -46,12 +54,6 @@ final GoRouter appRouter = GoRouter(
       path: '/history',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const HistoryScreen(),
-    ),
-    GoRoute(
-      name: 'goals',
-      path: '/goals',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const GoalsScreen(),
     ),
     GoRoute(
       name: 'recurring',
@@ -65,10 +67,30 @@ final GoRouter appRouter = GoRouter(
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) {
         final extra = state.extra as Map<String, dynamic>?;
-        return BudgetsScreen(
-          categories: extra?['categories'] ?? const [],
-          allRecords: extra?['allRecords'] ?? const [],
-        );
+
+        // Безопасно получаем категории
+        final rawCategories = extra?['categories'];
+        final categories = rawCategories is List
+            ? rawCategories.whereType<CustomCategory>().toList()
+            : const <CustomCategory>[];
+
+        // Безопасно получаем и конвертируем список записей в нужный тип для BudgetsScreen
+        final rawRecords = extra?['allRecords'];
+        List<HistoryExpenseModel> allRecords = const [];
+
+        if (rawRecords is List) {
+          allRecords = rawRecords
+              .map((e) {
+                if (e is HistoryExpenseModel) return e;
+                if (e is HistoryExpense)
+                  return HistoryExpenseModel.fromEntity(e);
+                return null;
+              })
+              .whereType<HistoryExpenseModel>()
+              .toList();
+        }
+
+        return BudgetsScreen(categories: categories, allRecords: allRecords);
       },
     ),
     GoRoute(
@@ -78,7 +100,7 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) {
         final extra = state.extra as Map<String, dynamic>?;
         return AddTransactionScreen(
-          initialName: extra?['name'],
+          initialName: extra?['name'] as String?,
           initialPrice: (extra?['price'] as num?)?.toDouble(),
         );
       },

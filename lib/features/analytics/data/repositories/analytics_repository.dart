@@ -1,6 +1,6 @@
 import 'package:hive/hive.dart';
 import 'package:lumina/core/database/hive_client.dart';
-import 'package:lumina/features/analytics/data/models/analytics.product.model.dart';
+import 'package:lumina/features/analytics/data/models/analytics_product_model.dart';
 import 'package:lumina/features/history/data/models/history_expense_model.dart';
 
 class AnalyticsRepository {

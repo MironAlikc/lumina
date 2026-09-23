@@ -33,7 +33,7 @@ class DashboardFilterRow extends StatelessWidget {
                 children: [
                   _CategoryFilterChip(
                     label: loc.allFilter,
-                    icon: Icons.apps_rounded,
+                    icon: Icons.grid_view_rounded,
                     isSelected: historyState.selectedCategoryKey == null,
                     onTap: () {
                       HapticFeedback.lightImpact();
@@ -42,7 +42,7 @@ class DashboardFilterRow extends StatelessWidget {
                   ),
                   ...categories.map((cat) {
                     return _CategoryFilterChip(
-                      label: cat.name,
+                      label: cat.localizedName(loc),
                       icon: cat.icon,
                       iconColor: cat.color,
                       isSelected: historyState.selectedCategoryKey == cat.id,
@@ -90,13 +90,25 @@ class _CategoryFilterChip extends StatelessWidget {
           onTap: onTap,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            curve: Curves.easeInOut,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: isSelected ? LuminaColors.primary : Colors.white,
+              color: isSelected ? LuminaColors.accent : LuminaColors.surface,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: isSelected ? LuminaColors.primary : LuminaColors.border,
+                color: isSelected
+                    ? Colors.transparent
+                    : LuminaColors.cardMintBorder.withValues(alpha: 0.6),
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: isSelected
+                      ? LuminaColors.accent.withValues(alpha: 0.2)
+                      : Colors.black.withValues(alpha: 0.02),
+                  blurRadius: isSelected ? 6 : 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,

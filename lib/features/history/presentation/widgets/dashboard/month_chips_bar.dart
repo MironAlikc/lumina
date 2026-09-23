@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-import 'package:lumina/core/theme/lumina_theme.dart';
+import 'package:lumina/core/theme/lumina_colors.dart';
 import 'package:lumina/features/history/presentation/cubits/history_cubit.dart';
 import 'package:lumina/features/history/presentation/cubits/history_state.dart';
 
@@ -20,6 +20,7 @@ class _MonthChipsBarState extends State<MonthChipsBar> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final month = context.read<HistoryCubit>().state.selectedMonth;
       _scrollToMonth(month);
     });
@@ -88,13 +89,13 @@ class _MonthChipsBarState extends State<MonthChipsBar> {
                     ),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? LuminaTheme.accentColor
+                          ? LuminaColors.accent
                           : Colors.white.withValues(alpha: 0.9),
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: isSelected
                           ? [
                               BoxShadow(
-                                color: LuminaTheme.accentColor.withValues(
+                                color: LuminaColors.accent.withValues(
                                   alpha: 0.25,
                                 ),
                                 blurRadius: 8,
@@ -115,7 +116,7 @@ class _MonthChipsBarState extends State<MonthChipsBar> {
                         style: TextStyle(
                           color: isSelected
                               ? Colors.white
-                              : LuminaTheme.textColor.withValues(alpha: 0.8),
+                              : LuminaColors.textMain.withValues(alpha: 0.8),
                           fontWeight: isSelected
                               ? FontWeight.w600
                               : FontWeight.w500,

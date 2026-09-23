@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:lumina/core/theme/lumina_colors.dart';
 import 'package:lumina/core/theme/lumina_dimensions.dart';
 import 'package:lumina/features/history/data/models/custom_category_model.dart';
@@ -35,105 +36,89 @@ class SettingsScreen extends StatelessWidget {
               prev.selectedMonth != next.selectedMonth ||
               prev.selectedYear != next.selectedYear,
           builder: (context, state) {
-            return LayoutBuilder(
-              builder: (context, constraints) {
-                return SingleChildScrollView(
+            return Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: isTablet ? 700 : double.infinity,
+                ),
+                child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(
                     parent: BouncingScrollPhysics(),
                   ),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight,
-                    ),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth: isTablet ? 700 : double.infinity,
-                        ),
-                        child: Padding(
-                          padding: EdgeInsets.fromLTRB(
-                            LuminaDimensions.paddingXL,
-                            LuminaDimensions.paddingM,
-                            LuminaDimensions.paddingXL,
-                            MediaQuery.paddingOf(context).bottom + 98,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _ProfileCard(loc: loc),
-                              const SizedBox(height: 32),
-                              Text(
-                                loc.budgetManagement,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: LuminaColors.textMain,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              _BudgetSlider(state: state, loc: loc),
-                              const SizedBox(height: 16),
-                              _SettingsTile(
-                                icon: Icons.pie_chart_outline_rounded,
-                                iconColor: LuminaColors.primary,
-                                title: loc.categoryBudgets,
-                                onTap: () {
-                                  HapticFeedback.lightImpact();
-                                  final catState = context
-                                      .read<CategoriesCubit>()
-                                      .state;
-                                  final categories =
-                                      catState is CategoriesLoaded
-                                      ? catState.categories
-                                      : const <CustomCategory>[];
-                                  context.pushNamed(
-                                    'budgets',
-                                    extra: {
-                                      'categories': categories,
-                                      'allRecords': state.allRecords,
-                                    },
-                                  );
-                                },
-                              ),
-                              _SettingsTile(
-                                icon: Icons.savings_rounded,
-                                iconColor: LuminaColors.success,
-                                title: loc.goalsAndSavings,
-                                onTap: () {
-                                  HapticFeedback.lightImpact();
-                                  context.pushNamed('goals');
-                                },
-                              ),
-                              const SizedBox(height: 32),
-                              Text(
-                                loc.appSection,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: LuminaColors.textMain,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              _SettingsTile(
-                                icon: Icons.repeat_rounded,
-                                iconColor: LuminaColors.primary,
-                                title: loc.recurringPayments,
-                                onTap: () {
-                                  HapticFeedback.lightImpact();
-                                  context.pushNamed('recurring');
-                                },
-                              ),
-                              _ExportTile(state: state, loc: loc),
-                              const CurrencySettingsTile(),
-                              const LanguageSettingsTile(),
-                            ],
-                          ),
-                        ),
+                  padding: EdgeInsets.fromLTRB(
+                    20,
+                    8,
+                    20,
+                    MediaQuery.paddingOf(context).bottom + 120,
+                  ),
+                  children: [
+                    _ProfileCard(loc: loc),
+                    const SizedBox(height: 28),
+                    Text(
+                      loc.budgetManagement,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: LuminaColors.textMain,
                       ),
                     ),
-                  ),
-                );
-              },
+                    const SizedBox(height: 12),
+                    _BudgetSlider(state: state, loc: loc),
+                    const SizedBox(height: 12),
+                    _SettingsTile(
+                      icon: Icons.pie_chart_outline_rounded,
+                      iconColor: LuminaColors.primary,
+                      title: loc.categoryBudgets,
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        final catState = context.read<CategoriesCubit>().state;
+                        final categories = catState is CategoriesLoaded
+                            ? catState.categories
+                            : const <CustomCategory>[];
+                        context.pushNamed(
+                          'budgets',
+                          extra: {
+                            'categories': categories,
+                            'allRecords': state.allRecords,
+                          },
+                        );
+                      },
+                    ),
+                    _SettingsTile(
+                      icon: Icons.savings_rounded,
+                      iconColor: LuminaColors.success,
+                      title: loc.goalsAndSavings,
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        context.pushNamed('goals');
+                      },
+                    ),
+                    const SizedBox(height: 28),
+                    Text(
+                      loc.appSection,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: LuminaColors.textMain,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _SettingsTile(
+                      icon: Icons.repeat_rounded,
+                      iconColor: LuminaColors.primary,
+                      title: loc.recurringPayments,
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        context.pushNamed('recurring');
+                      },
+                    ),
+                    _ExportTile(state: state, loc: loc),
+                    const CurrencySettingsTile(),
+                    const LanguageSettingsTile(),
+                  ],
+                ),
+              ),
             );
           },
         ),
@@ -203,11 +188,14 @@ class _BudgetSlider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locale = Localizations.localeOf(context).toString();
+    final whole = NumberFormat.decimalPattern(locale)
+      ..maximumFractionDigits = 0;
     final symbol = context.watch<CurrencyCubit>().state.symbol;
     final limit = state.budgetLimit.clamp(0, 100000).toDouble();
     final label = limit == 0
         ? loc.limitNotSet
-        : '${limit.toStringAsFixed(0)} $symbol';
+        : '${whole.format(limit)} $symbol';
 
     return Container(
       padding: EdgeInsets.all(LuminaDimensions.paddingL),
@@ -332,11 +320,7 @@ class _ExportTileState extends State<_ExportTile> {
               height: 18,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : const Icon(
-              Icons.arrow_forward_ios_rounded,
-              size: 16,
-              color: LuminaColors.textSecondary,
-            ),
+          : null,
       onTap: _busy ? () {} : _export,
     );
   }
