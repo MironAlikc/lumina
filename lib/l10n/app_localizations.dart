@@ -220,6 +220,12 @@ abstract class AppLocalizations {
   /// **'Lumina local profile'**
   String get localProfile;
 
+  /// No description provided for @myAccounts.
+  ///
+  /// In en, this message translates to:
+  /// **'My accounts'**
+  String get myAccounts;
+
   /// No description provided for @budgetManagement.
   ///
   /// In en, this message translates to:
@@ -231,6 +237,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Monthly limit'**
   String get monthlyLimit;
+
+  /// No description provided for @monthlyLimitLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Set a monthly expense limit to control your budget'**
+  String get monthlyLimitLabel;
 
   /// No description provided for @appSection.
   ///
@@ -363,12 +375,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Choose category'**
   String get chooseCategory;
-
-  /// No description provided for @monthlyLimitLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Set a monthly expense limit to control your budget'**
-  String get monthlyLimitLabel;
 
   /// No description provided for @saveLimit.
   ///
@@ -679,7 +685,7 @@ abstract class AppLocalizations {
   /// No description provided for @insightTopSpend.
   ///
   /// In en, this message translates to:
-  /// **'🔥 You spend the most on \"{category}\" ({percent}% of expenses).'**
+  /// **'🔥 You spend the most on «{category}» ({percent}% of expenses).'**
   String insightTopSpend(String category, String percent);
 
   /// No description provided for @analyticsError.
@@ -687,6 +693,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t calculate analytics.'**
   String get analyticsError;
+
+  /// No description provided for @analyticsCategoriesTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Categories'**
+  String get analyticsCategoriesTab;
+
+  /// No description provided for @analyticsTrendTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Trend'**
+  String get analyticsTrendTab;
+
+  /// No description provided for @tapToViewTransactions.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to view transactions'**
+  String get tapToViewTransactions;
+
+  /// No description provided for @moreThanLastMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'+{percent}% vs last month'**
+  String moreThanLastMonth(String percent);
+
+  /// No description provided for @lessThanLastMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'-{percent}% vs last month'**
+  String lessThanLastMonth(String percent);
+
+  /// No description provided for @topTransactions.
+  ///
+  /// In en, this message translates to:
+  /// **'Top transactions'**
+  String get topTransactions;
 
   /// No description provided for @goalsTitle.
   ///
@@ -763,7 +805,7 @@ abstract class AppLocalizations {
   /// No description provided for @goalsDepositTitle.
   ///
   /// In en, this message translates to:
-  /// **'Add to \"{title}\"'**
+  /// **'Add to «{title}»'**
   String goalsDepositTitle(String title);
 
   /// No description provided for @goalsDepositAmount.
@@ -787,7 +829,7 @@ abstract class AppLocalizations {
   /// No description provided for @goalsDeleteConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Delete \"{title}\" and its progress?'**
+  /// **'Delete «{title}» and its progress?'**
   String goalsDeleteConfirm(String title);
 
   /// No description provided for @goalsDelete.
@@ -862,41 +904,77 @@ abstract class AppLocalizations {
   /// **'Net'**
   String get matrixNet;
 
-  /// No description provided for @analyticsCategoriesTab.
+  /// No description provided for @scanReceipt.
   ///
   /// In en, this message translates to:
-  /// **'Categories'**
-  String get analyticsCategoriesTab;
+  /// **'Scan receipt'**
+  String get scanReceipt;
 
-  /// No description provided for @analyticsTrendTab.
+  /// No description provided for @scanFromCamera.
   ///
   /// In en, this message translates to:
-  /// **'Trend'**
-  String get analyticsTrendTab;
+  /// **'Take photo'**
+  String get scanFromCamera;
 
-  /// No description provided for @tapToViewTransactions.
+  /// No description provided for @scanFromGallery.
   ///
   /// In en, this message translates to:
-  /// **'Tap to view transactions'**
-  String get tapToViewTransactions;
+  /// **'Choose photo'**
+  String get scanFromGallery;
 
-  /// No description provided for @moreThanLastMonth.
+  /// No description provided for @scanQrCode.
   ///
   /// In en, this message translates to:
-  /// **'+{percent}% vs last month'**
-  String moreThanLastMonth(String percent);
+  /// **'Scan fiscal QR'**
+  String get scanQrCode;
 
-  /// No description provided for @lessThanLastMonth.
+  /// No description provided for @scanReceiptTitle.
   ///
   /// In en, this message translates to:
-  /// **'-{percent}% vs last month'**
-  String lessThanLastMonth(String percent);
+  /// **'Receipt'**
+  String get scanReceiptTitle;
 
-  /// No description provided for @topTransactions.
+  /// No description provided for @confirmReceipt.
   ///
   /// In en, this message translates to:
-  /// **'Top transactions'**
-  String get topTransactions;
+  /// **'Add to history'**
+  String get confirmReceipt;
+
+  /// No description provided for @merchantHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Store or note'**
+  String get merchantHint;
+
+  /// No description provided for @scanFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not read the receipt. Try a clearer photo.'**
+  String get scanFailed;
+
+  /// No description provided for @scanNothingFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No amount found. Enter it manually.'**
+  String get scanNothingFound;
+
+  /// No description provided for @receiptLines.
+  ///
+  /// In en, this message translates to:
+  /// **'Items'**
+  String get receiptLines;
+
+  /// No description provided for @permissionCameraDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera access is required to scan receipts'**
+  String get permissionCameraDenied;
+
+  /// No description provided for @scanningReceipt.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading receipt…'**
+  String get scanningReceipt;
 }
 
 class _AppLocalizationsDelegate

@@ -69,10 +69,17 @@ class AppLocalizationsUk extends AppLocalizations {
   String get localProfile => 'Локальний профіль Lumina';
 
   @override
+  String get myAccounts => 'Мої рахунки';
+
+  @override
   String get budgetManagement => 'Управління бюджетом';
 
   @override
   String get monthlyLimit => 'Місячний ліміт';
+
+  @override
+  String get monthlyLimitLabel =>
+      'Встановіть місячний ліміт витрат для контролю бюджету';
 
   @override
   String get appSection => 'Додаток';
@@ -140,10 +147,6 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get chooseCategory => 'Обрати категорію';
-
-  @override
-  String get monthlyLimitLabel =>
-      'Встановіть місячний ліміт витрат для контролю бюджету';
 
   @override
   String get saveLimit => 'Зберегти ліміт';
@@ -307,6 +310,28 @@ class AppLocalizationsUk extends AppLocalizations {
   String get analyticsError => 'Не вдалося порахувати аналітику.';
 
   @override
+  String get analyticsCategoriesTab => 'Категорії';
+
+  @override
+  String get analyticsTrendTab => 'Динаміка';
+
+  @override
+  String get tapToViewTransactions => 'Натисніть, щоб переглянути операції';
+
+  @override
+  String moreThanLastMonth(String percent) {
+    return '+$percent% до попереднього місяця';
+  }
+
+  @override
+  String lessThanLastMonth(String percent) {
+    return '-$percent% до попереднього місяця';
+  }
+
+  @override
+  String get topTransactions => 'Топ операцій';
+
+  @override
   String get goalsTitle => 'Цілі та заощадження';
 
   @override
@@ -367,7 +392,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String goalsDeleteConfirm(String title) {
-    return 'Видалити «$title» і весь прогрес?';
+    return 'Видалити «$title» і весь прогресс?';
   }
 
   @override
@@ -409,24 +434,39 @@ class AppLocalizationsUk extends AppLocalizations {
   String get matrixNet => 'Баланс';
 
   @override
-  String get analyticsCategoriesTab => 'Категорії';
+  String get scanReceipt => 'Скан чека';
 
   @override
-  String get analyticsTrendTab => 'Динаміка';
+  String get scanFromCamera => 'Сфотографувати';
 
   @override
-  String get tapToViewTransactions => 'Натисніть, щоб переглянути операції';
+  String get scanFromGallery => 'Обрати фото';
 
   @override
-  String moreThanLastMonth(String percent) {
-    return '+$percent% до попереднього місяця';
-  }
+  String get scanQrCode => 'QR фіскального чека';
 
   @override
-  String lessThanLastMonth(String percent) {
-    return '-$percent% до попереднього місяця';
-  }
+  String get scanReceiptTitle => 'Чек';
 
   @override
-  String get topTransactions => 'Топ операцій';
+  String get confirmReceipt => 'Додати в історію';
+
+  @override
+  String get merchantHint => 'Магазин або нотатка';
+
+  @override
+  String get scanFailed => 'Не вдалося прочитати чек. Зробіть чіткіше фото.';
+
+  @override
+  String get scanNothingFound => 'Суму не знайдено. Введіть вручну.';
+
+  @override
+  String get receiptLines => 'Позиції';
+
+  @override
+  String get permissionCameraDenied =>
+      'Потрібен доступ до камери, щоб сканувати чеки';
+
+  @override
+  String get scanningReceipt => 'Читаємо чек…';
 }
