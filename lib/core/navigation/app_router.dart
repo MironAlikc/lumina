@@ -1,17 +1,18 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lumina/features/accounts/presentation/screens/accounts_screen.dart';
 import 'package:lumina/features/analytics/presentation/screens/analytics_screen.dart';
-import 'package:lumina/features/history/data/models/custom_category_model.dart';
-import 'package:lumina/features/history/data/models/history_expense_model.dart';
-import 'package:lumina/features/history/domain/entities/history_expense.dart';
-import 'package:lumina/features/history/presentation/screens/add_transaction_screen.dart';
-import 'package:lumina/features/history/presentation/screens/budgets_screen.dart';
-import 'package:lumina/features/history/presentation/screens/dashboard_screen.dart';
-import 'package:lumina/features/history/presentation/screens/goals_screen.dart';
-import 'package:lumina/features/history/presentation/screens/history_screen.dart';
-import 'package:lumina/features/history/presentation/screens/recurring_screen.dart';
-import 'package:lumina/features/profile/presentation/screens/settings_screen.dart';
+import 'package:lumina/features/categories/data/models/custom_category_model.dart';
+import 'package:lumina/features/transactions/data/models/history_expense_model.dart';
+import 'package:lumina/features/transactions/domain/entities/history_expense.dart';
+import 'package:lumina/features/transactions/presentation/screens/add_transaction_screen.dart';
+import 'package:lumina/features/budgets/presentation/screens/budgets_screen.dart';
+import 'package:lumina/features/dashboard/presentation/screens/dashboard_screen.dart';
+import 'package:lumina/features/goals/presentation/screens/goals_screen.dart';
+import 'package:lumina/features/transactions/presentation/screens/history_screen.dart';
+import 'package:lumina/features/recurring/presentation/screens/recurring_screen.dart';
+import 'package:lumina/features/settings/presentation/screens/settings_screen.dart';
 import 'package:lumina/features/shell/presentation/screens/main_shell_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -62,6 +63,12 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const RecurringScreen(),
     ),
     GoRoute(
+      name: 'accounts',
+      path: '/accounts',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const AccountsScreen(),
+    ),
+    GoRoute(
       name: 'budgets',
       path: '/budgets',
       parentNavigatorKey: _rootNavigatorKey,
@@ -82,8 +89,9 @@ final GoRouter appRouter = GoRouter(
           allRecords = rawRecords
               .map((e) {
                 if (e is HistoryExpenseModel) return e;
-                if (e is HistoryExpense)
+                if (e is HistoryExpense) {
                   return HistoryExpenseModel.fromEntity(e);
+                }
                 return null;
               })
               .whereType<HistoryExpenseModel>()

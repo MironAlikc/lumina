@@ -1,26 +1,25 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lumina/features/analytics/data/models/analytics_daily_point.dart';
+import 'package:lumina/features/analytics/domain/usecases/calculate_month_analytics.dart';
 import 'package:lumina/features/analytics/presentation/cubits/analytics_state.dart';
-import 'package:lumina/features/history/data/models/custom_category_model.dart';
-import 'package:lumina/features/history/data/models/history_expense_model.dart';
+import 'package:lumina/features/analytics/presentation/mappers/category_display_mapper.dart';
+import 'package:lumina/features/categories/data/models/custom_category_model.dart';
+import 'package:lumina/features/transactions/data/models/history_expense_model.dart';
 import 'package:lumina/l10n/app_localizations.dart';
 
 class AnalyticsCubit extends Cubit<AnalyticsState> {
-  AnalyticsCubit() : super(AnalyticsState(selectedDate: DateTime.now()));
+  AnalyticsCubit({
+    required CalculateMonthAnalytics calculateMonthAnalytics,
+    CategoryDisplayMapper categoryDisplayMapper = const CategoryDisplayMapper(),
+  }) : _calculate = calculateMonthAnalytics,
+       _mapper = categoryDisplayMapper,
+       super(AnalyticsState.initial());
 
-  void toggleChartMode(bool isLineMode) {
-    if (state.isLineChartMode == isLineMode) return;
-    emit(state.copyWith(isLineChartMode: isLineMode));
-  }
+  final CalculateMonthAnalytics _calculate;
+  final CategoryDisplayMapper _mapper;
 
-  void changeDate(
-    DateTime newDate,
-    List<HistoryExpenseModel> records,
-    List<CustomCategory> categories,
-    AppLocalizations loc,
-  ) {
-    emit(state.copyWith(selectedDate: newDate));
-    calculateAnalytics(records, categories, loc);
+  void toggleChartMode(bool isLine) {
+    emit(state.copyWith(isLineChartMode: isLine));
   }
 
   void calculateAnalytics(
@@ -28,104 +27,81 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
     List<CustomCategory> categories,
     AppLocalizations loc,
   ) {
+    _run(records, categories, loc, state.selectedDate);
+  }
+
+  void changeDate(
+    DateTime date,
+    List<HistoryExpenseModel> records,
+    List<CustomCategory> categories,
+    AppLocalizations loc,
+  ) {
+    _run(records, categories, loc, DateTime(date.year, date.month));
+  }
+
+  void _run(
+    List<HistoryExpenseModel> records,
+    List<CustomCategory> categories,
+    AppLocalizations loc,
+    DateTime selected,
+  ) {
     try {
       emit(state.copyWith(isLoading: true, clearError: true));
 
-      final selected = state.selectedDate;
-      final expenses = records.where((r) {
-        return r.type == TransactionType.expense &&
-            r.date.year == selected.year &&
-            r.date.month == selected.month;
-      }).toList();
+      final report = _calculate(records: records, selected: selected);
 
-      // Сумма расходов за предыдущий месяц — для бейджа сравнения.
-      // DateTime(year, month - 1) сам корректно переносит январь в декабрь
-      // предыдущего года — дополнительная арифметика не нужна.
-      final prevMonthDate = DateTime(selected.year, selected.month - 1);
-      final prevExpenses = records.where((r) {
-        return r.type == TransactionType.expense &&
-            r.date.year == prevMonthDate.year &&
-            r.date.month == prevMonthDate.month;
-      });
-      final double? previousMonthTotal = prevExpenses.isEmpty
-          ? null
-          : prevExpenses.fold(0.0, (sum, e) => sum! + e.price);
-
-      if (expenses.isEmpty) {
-        emit(
-          state.copyWith(
-            slices: const [],
-            dailyPoints: const [],
-            monthExpenses: const [],
-            totalSpent: 0,
-            previousMonthTotal: previousMonthTotal,
-            clearPreviousMonthTotal: previousMonthTotal == null,
-            insightMessage: loc.insightNoData,
-            isLoading: false,
-          ),
-        );
-        return;
-      }
-
-      // 1. Расчёт категорий для круговой диаграммы
-      final totals = <String, double>{};
-      for (final exp in expenses) {
-        final id = exp.categoryId.isEmpty ? 'unknown' : exp.categoryId;
-        totals[id] = (totals[id] ?? 0) + exp.price;
-      }
-
-      final total = totals.values.fold(0.0, (sum, v) => sum + v);
-
-      final slices = totals.entries.map((entry) {
-        final category = categories.cast<CustomCategory?>().firstWhere(
-          (c) => c!.id == entry.key,
-          orElse: () => null,
+      final slices = report.byCategory.map((item) {
+        final display = _mapper.resolve(
+          categoryId: item.categoryId,
+          storedName: item.storedName,
+          categories: categories,
+          loc: loc,
         );
         return AnalyticsSlice(
-          categoryId: entry.key,
-          name:
-              category?.localizedName(loc) ??
-              (entry.key == 'unknown' ? loc.otherCategory : entry.key),
-          amount: entry.value,
-          colorHex: category?.colorHex ?? 0xFF94A3B8,
+          categoryId: item.categoryId,
+          name: display.name,
+          amount: item.amount,
+          colorHex: display.colorHex,
         );
-      }).toList()..sort((a, b) => b.amount.compareTo(a.amount));
-
-      // 2. Расчёт динамики по дням для линейного графика
-      final daysInMonth = DateTime(selected.year, selected.month + 1, 0).day;
-      final dailyMap = <int, double>{};
-      for (var i = 1; i <= daysInMonth; i++) {
-        dailyMap[i] = 0.0;
-      }
-      for (final exp in expenses) {
-        final day = exp.date.day;
-        dailyMap[day] = (dailyMap[day] ?? 0.0) + exp.price;
-      }
-      final dailyPoints = dailyMap.entries
-          .map((e) => AnalyticsDailyPoint(day: e.key, amount: e.value))
-          .toList();
+      }).toList();
 
       final insight = slices.isEmpty
-          ? loc.insightNoData
-          : loc.insightTopSpend(
+          ? ''
+          : _topInsight(
+              loc,
               slices.first.name,
-              slices.first.percentOf(total).toStringAsFixed(0),
+              slices.first.percentOf(report.totalSpent).toStringAsFixed(0),
             );
 
       emit(
         state.copyWith(
-          slices: slices,
-          dailyPoints: dailyPoints,
-          monthExpenses: expenses,
-          totalSpent: total,
-          previousMonthTotal: previousMonthTotal,
-          clearPreviousMonthTotal: previousMonthTotal == null,
-          insightMessage: insight,
+          selectedDate: DateTime(report.year, report.month),
           isLoading: false,
+          clearError: true,
+          insightMessage: insight,
+          totalSpent: report.totalSpent,
+          previousMonthTotal: report.previousMonthTotal,
+          slices: slices,
+          dailyPoints: [
+            for (final d in report.daily)
+              AnalyticsDailyPoint(day: d.day, amount: d.amount),
+          ],
+          monthExpenses: report.monthExpenses,
         ),
       );
-    } catch (_) {
-      emit(state.copyWith(isLoading: false, errorMessage: loc.analyticsError));
+    } catch (e) {
+      emit(state.copyWith(isLoading: false, errorMessage: e.toString()));
     }
+  }
+
+  String _topInsight(AppLocalizations loc, String name, String percent) {
+    final code = loc.localeName;
+    if (code.startsWith('uk')) {
+      return '🔥 Найбільше витрачаєте на «$name» ($percent% від витрат).';
+    }
+    if (code.startsWith('en')) {
+      return '🔥 You spend the most on “$name” ($percent% of expenses).';
+    }
+    return '🔥 Больше всего тратите на «$name» ($percent% от расходов).';
   }
 }

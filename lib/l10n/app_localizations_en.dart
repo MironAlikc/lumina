@@ -69,10 +69,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get localProfile => 'Lumina local profile';
 
   @override
+  String get myAccounts => 'My accounts';
+
+  @override
   String get budgetManagement => 'Budget management';
 
   @override
   String get monthlyLimit => 'Monthly limit';
+
+  @override
+  String get monthlyLimitLabel =>
+      'Set a monthly expense limit to control your budget';
 
   @override
   String get appSection => 'App';
@@ -140,10 +147,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chooseCategory => 'Choose category';
-
-  @override
-  String get monthlyLimitLabel =>
-      'Set a monthly expense limit to control your budget';
 
   @override
   String get saveLimit => 'Save limit';
@@ -301,11 +304,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String insightTopSpend(String category, String percent) {
-    return '🔥 You spend the most on \"$category\" ($percent% of expenses).';
+    return '🔥 You spend the most on «$category» ($percent% of expenses).';
   }
 
   @override
   String get analyticsError => 'Couldn\'t calculate analytics.';
+
+  @override
+  String get analyticsCategoriesTab => 'Categories';
+
+  @override
+  String get analyticsTrendTab => 'Trend';
+
+  @override
+  String get tapToViewTransactions => 'Tap to view transactions';
+
+  @override
+  String moreThanLastMonth(String percent) {
+    return '+$percent% vs last month';
+  }
+
+  @override
+  String lessThanLastMonth(String percent) {
+    return '-$percent% vs last month';
+  }
+
+  @override
+  String get topTransactions => 'Top transactions';
 
   @override
   String get goalsTitle => 'Goals & savings';
@@ -352,7 +377,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String goalsDepositTitle(String title) {
-    return 'Add to \"$title\"';
+    return 'Add to «$title»';
   }
 
   @override
@@ -368,7 +393,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String goalsDeleteConfirm(String title) {
-    return 'Delete \"$title\" and its progress?';
+    return 'Delete «$title» and its progress?';
   }
 
   @override
@@ -410,24 +435,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String get matrixNet => 'Net';
 
   @override
-  String get analyticsCategoriesTab => 'Categories';
+  String get scanReceipt => 'Scan receipt';
 
   @override
-  String get analyticsTrendTab => 'Trend';
+  String get scanFromCamera => 'Take photo';
 
   @override
-  String get tapToViewTransactions => 'Tap to view transactions';
+  String get scanFromGallery => 'Choose photo';
 
   @override
-  String moreThanLastMonth(String percent) {
-    return '+$percent% vs last month';
-  }
+  String get scanQrCode => 'Scan fiscal QR';
 
   @override
-  String lessThanLastMonth(String percent) {
-    return '-$percent% vs last month';
-  }
+  String get scanReceiptTitle => 'Receipt';
 
   @override
-  String get topTransactions => 'Top transactions';
+  String get confirmReceipt => 'Add to history';
+
+  @override
+  String get merchantHint => 'Store or note';
+
+  @override
+  String get scanFailed => 'Could not read the receipt. Try a clearer photo.';
+
+  @override
+  String get scanNothingFound => 'No amount found. Enter it manually.';
+
+  @override
+  String get receiptLines => 'Items';
+
+  @override
+  String get permissionCameraDenied =>
+      'Camera access is required to scan receipts';
+
+  @override
+  String get scanningReceipt => 'Reading receipt…';
 }

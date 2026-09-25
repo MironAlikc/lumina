@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:lumina/features/analytics/data/models/analytics_daily_point.dart';
-import 'package:lumina/features/history/data/models/history_expense_model.dart';
+import 'package:lumina/features/transactions/data/models/history_expense_model.dart';
 
 @immutable
 class AnalyticsSlice extends Equatable {
@@ -26,31 +26,31 @@ class AnalyticsSlice extends Equatable {
 @immutable
 class AnalyticsState extends Equatable {
   const AnalyticsState({
+    required this.selectedDate,
     this.slices = const [],
     this.dailyPoints = const [],
     this.monthExpenses = const [],
-    this.totalSpent = 0.0,
+    this.totalSpent = 0,
     this.previousMonthTotal,
     this.insightMessage = '',
-    required this.selectedDate,
     this.isLoading = false,
     this.errorMessage,
     this.isLineChartMode = false,
   });
 
+  factory AnalyticsState.initial() {
+    final now = DateTime.now();
+    return AnalyticsState(
+      selectedDate: DateTime(now.year, now.month),
+      isLoading: true,
+    );
+  }
+
   final List<AnalyticsSlice> slices;
   final List<AnalyticsDailyPoint> dailyPoints;
-
-  // Отфильтрованные расходы текущего месяца — нужны виджету для мини-превью
-  // топ-транзакций по категории при долгом тапе на секторе диаграммы.
   final List<HistoryExpenseModel> monthExpenses;
-
   final double totalSpent;
-
-  // null — данных за прошлый месяц нет (не с чем сравнивать), бейдж
-  // сравнения не показывается. 0 и положительные значения — реальная сумма.
   final double? previousMonthTotal;
-
   final String insightMessage;
   final DateTime selectedDate;
   final bool isLoading;

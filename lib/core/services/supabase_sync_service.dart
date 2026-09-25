@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:lumina/features/history/data/models/history_expense_model.dart';
+import 'package:lumina/features/transactions/data/models/history_expense_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SupabaseSyncService {

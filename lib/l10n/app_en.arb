@@ -20,8 +20,10 @@
   "settingsTitle": "Profile settings",
   "myWallet": "My wallet",
   "localProfile": "Lumina local profile",
+  "myAccounts": "My accounts",
   "budgetManagement": "Budget management",
   "monthlyLimit": "Monthly limit",
+  "monthlyLimitLabel": "Set a monthly expense limit to control your budget",
   "appSection": "App",
   "categoryBudgets": "Category budgets",
   "goalsAndSavings": "Goals & savings",
@@ -44,7 +46,6 @@
   "noLimitsThisMonth": "No limits set for this month yet.",
   "setCategoryLimit": "Set a category limit",
   "chooseCategory": "Choose category",
-  "monthlyLimitLabel": "Monthly limit",
   "saveLimit": "Save limit",
   "change": "Change",
   "somethingWentWrong": "Oops, something went wrong…",
@@ -96,7 +97,7 @@
   "currencyUsd": "US dollar",
   "currencyEur": "Euro",
   "insightNoData": "No expenses this month.",
-  "insightTopSpend": "🔥 You spend the most on \"{category}\" ({percent}% of expenses).",
+  "insightTopSpend": "🔥 You spend the most on «{category}» ({percent}% of expenses).",
   "@insightTopSpend": {
     "placeholders": {
       "category": { "type": "String" },
@@ -104,6 +105,22 @@
     }
   },
   "analyticsError": "Couldn't calculate analytics.",
+  "analyticsCategoriesTab": "Categories",
+  "analyticsTrendTab": "Trend",
+  "tapToViewTransactions": "Tap to view transactions",
+  "moreThanLastMonth": "+{percent}% vs last month",
+  "@moreThanLastMonth": {
+    "placeholders": {
+      "percent": { "type": "String" }
+    }
+  },
+  "lessThanLastMonth": "-{percent}% vs last month",
+  "@lessThanLastMonth": {
+    "placeholders": {
+      "percent": { "type": "String" }
+    }
+  },
+  "topTransactions": "Top transactions",
   "goalsTitle": "Goals & savings",
   "goalsEmpty": "No active goals yet.\nCreate a jar to start saving.",
   "goalsSaved": "Saved: {amount}",
@@ -131,7 +148,7 @@
   "goalsIconLabel": "Icon",
   "goalsCreate": "Create goal",
   "goalsCancel": "Cancel",
-  "goalsDepositTitle": "Add to \"{title}\"",
+  "goalsDepositTitle": "Add to «{title}»",
   "@goalsDepositTitle": {
     "placeholders": {
       "title": { "type": "String" }
@@ -145,7 +162,7 @@
   },
   "goalsDeposit": "Add",
   "goalsDeleteTitle": "Delete goal?",
-  "goalsDeleteConfirm": "Delete \"{title}\" and its progress?",
+  "goalsDeleteConfirm": "Delete «{title}» and its progress?",
   "@goalsDeleteConfirm": {
     "placeholders": {
       "title": { "type": "String" }
@@ -169,15 +186,16 @@
   "matrixIncomeTotal": "Income total",
   "matrixExpenseTotal": "Expense total",
   "matrixNet": "Net",
-  "monthlyLimit": "Monthly limit",
-  "monthlyLimitLabel": "Set a monthly expense limit to control your budget",
-  "saveLimit": "Save limit",
-  "analyticsCategoriesTab": "Categories",
-  "analyticsTrendTab": "Trend",
-  "tapToViewTransactions": "Tap to view transactions",
-  "moreThanLastMonth": "+{percent}% vs last month",
-  "@moreThanLastMonth": { "placeholders": { "percent": { "type": "String" } } },
-  "lessThanLastMonth": "-{percent}% vs last month",
-  "@lessThanLastMonth": { "placeholders": { "percent": { "type": "String" } } },
-  "topTransactions": "Top transactions"
+  "scanReceipt": "Scan receipt",
+  "scanFromCamera": "Take photo",
+  "scanFromGallery": "Choose photo",
+  "scanQrCode": "Scan fiscal QR",
+  "scanReceiptTitle": "Receipt",
+  "confirmReceipt": "Add to history",
+  "merchantHint": "Store or note",
+  "scanFailed": "Could not read the receipt. Try a clearer photo.",
+  "scanNothingFound": "No amount found. Enter it manually.",
+  "receiptLines": "Items",
+  "permissionCameraDenied": "Camera access is required to scan receipts",
+  "scanningReceipt": "Reading receipt…"
 }

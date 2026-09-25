@@ -69,10 +69,17 @@ class AppLocalizationsRu extends AppLocalizations {
   String get localProfile => 'Локальный профиль Lumina';
 
   @override
+  String get myAccounts => 'Мои счета';
+
+  @override
   String get budgetManagement => 'Управление бюджетом';
 
   @override
   String get monthlyLimit => 'Месячный лимит';
+
+  @override
+  String get monthlyLimitLabel =>
+      'Установите месячный лимит расходов для контроля бюджета';
 
   @override
   String get appSection => 'Приложение';
@@ -140,10 +147,6 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get chooseCategory => 'Выберите категорию';
-
-  @override
-  String get monthlyLimitLabel =>
-      'Установите месячный лимит расходов для контроля бюджета';
 
   @override
   String get saveLimit => 'Сохранить лимит';
@@ -307,6 +310,28 @@ class AppLocalizationsRu extends AppLocalizations {
   String get analyticsError => 'Не удалось посчитать аналитику.';
 
   @override
+  String get analyticsCategoriesTab => 'Категории';
+
+  @override
+  String get analyticsTrendTab => 'Динамика';
+
+  @override
+  String get tapToViewTransactions => 'Нажмите, чтобы посмотреть операции';
+
+  @override
+  String moreThanLastMonth(String percent) {
+    return '+$percent% к прошлому месяцу';
+  }
+
+  @override
+  String lessThanLastMonth(String percent) {
+    return '-$percent% к прошлому месяцу';
+  }
+
+  @override
+  String get topTransactions => 'Топ операций';
+
+  @override
   String get goalsTitle => 'Цели и сбережения';
 
   @override
@@ -409,24 +434,39 @@ class AppLocalizationsRu extends AppLocalizations {
   String get matrixNet => 'Баланс';
 
   @override
-  String get analyticsCategoriesTab => 'Категории';
+  String get scanReceipt => 'Скан чека';
 
   @override
-  String get analyticsTrendTab => 'Динамика';
+  String get scanFromCamera => 'Сфотографировать';
 
   @override
-  String get tapToViewTransactions => 'Нажмите, чтобы посмотреть операции';
+  String get scanFromGallery => 'Выбрать фото';
 
   @override
-  String moreThanLastMonth(String percent) {
-    return '+$percent% к прошлому месяцу';
-  }
+  String get scanQrCode => 'QR фискального чека';
 
   @override
-  String lessThanLastMonth(String percent) {
-    return '-$percent% к прошлому месяцу';
-  }
+  String get scanReceiptTitle => 'Чек';
 
   @override
-  String get topTransactions => 'Топ операций';
+  String get confirmReceipt => 'Добавить в историю';
+
+  @override
+  String get merchantHint => 'Магазин или заметка';
+
+  @override
+  String get scanFailed => 'Не удалось прочитать чек. Сделайте фото чётче.';
+
+  @override
+  String get scanNothingFound => 'Сумма не найдена. Введите вручную.';
+
+  @override
+  String get receiptLines => 'Позиции';
+
+  @override
+  String get permissionCameraDenied =>
+      'Нужен доступ к камере, чтобы сканировать чеки';
+
+  @override
+  String get scanningReceipt => 'Читаем чек…';
 }
