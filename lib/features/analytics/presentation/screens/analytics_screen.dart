@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -9,13 +10,13 @@ import 'package:lumina/features/analytics/presentation/cubits/analytics_cubit.da
 import 'package:lumina/features/analytics/presentation/cubits/analytics_state.dart';
 import 'package:lumina/features/analytics/presentation/widgets/analytics_widgets.dart';
 import 'package:lumina/features/categories/data/models/custom_category_model.dart';
-import 'package:lumina/features/transactions/data/models/history_expense_model.dart';
 import 'package:lumina/features/categories/presentation/cubits/categories_cubit.dart';
 import 'package:lumina/features/categories/presentation/cubits/categories_state.dart';
+import 'package:lumina/features/settings/presentation/cubits/currency_cubit.dart';
+import 'package:lumina/features/transactions/data/models/history_expense_model.dart';
 import 'package:lumina/features/transactions/presentation/cubits/history_cubit.dart';
 import 'package:lumina/features/transactions/presentation/cubits/history_state.dart';
 import 'package:lumina/l10n/app_localizations.dart';
-import 'package:lumina/features/settings/presentation/cubits/currency_cubit.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});
@@ -25,47 +26,57 @@ class AnalyticsScreen extends StatefulWidget {
 }
 
 class _AnalyticsScreenState extends State<AnalyticsScreen> {
+  Locale? _locale;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _refreshAnalytics());
   }
 
-  List<HistoryExpenseModel> _records() {
-    return context
-        .read<HistoryCubit>()
-        .state
-        .allRecords
-        .map(HistoryExpenseModel.fromEntity)
-        .toList();
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Названия категорий и инсайт считаются с учётом языка: при его смене
+    // данные нужно пересчитать.
+    final locale = Localizations.localeOf(context);
+    final changed = _locale != null && _locale != locale;
+    _locale = locale;
+    if (changed) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _refreshAnalytics());
+    }
   }
+
+  List<HistoryExpenseModel> _records() => context
+      .read<HistoryCubit>()
+      .state
+      .allRecords
+      .map(HistoryExpenseModel.fromEntity)
+      .toList();
 
   List<CustomCategory> _categories() {
     final state = context.read<CategoriesCubit>().state;
-    if (state is CategoriesLoaded) return state.categories;
-    return const <CustomCategory>[];
+    return state is CategoriesLoaded ? state.categories : const [];
   }
 
+  /// Только пересчёт. Загрузка данных - ответственность HistoryCubit:
+  /// вызов loadRecords() отсюда вместе с listener'ом на allRecords создавал
+  /// бесконечный цикл для пользователей без операций.
   void _refreshAnalytics() {
     if (!mounted) return;
-
-    final history = context.read<HistoryCubit>();
-    if (history.state.allRecords.isEmpty) {
-      history.loadRecords();
-    }
-
     context.read<AnalyticsCubit>().calculateAnalytics(
-      _records(),
-      _categories(),
-      AppLocalizations.of(context)!,
-    );
+          _records(),
+          _categories(),
+          AppLocalizations.of(context)!,
+        );
   }
 
   void _changeMonth(int monthsOffset) {
     if (!mounted) return;
-    final current = context.read<AnalyticsCubit>().state.selectedDate;
+    final cubit = context.read<AnalyticsCubit>();
+    final current = cubit.state.selectedDate;
 
-    context.read<AnalyticsCubit>().changeDate(
+    cubit.changeDate(
       DateTime(current.year, current.month + monthsOffset),
       _records(),
       _categories(),
@@ -73,14 +84,23 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  void _openCategoryHistory(AnalyticsSlice slice) {
+  Future<void> _openCategoryHistory(AnalyticsSlice slice) async {
     final date = context.read<AnalyticsCubit>().state.selectedDate;
     final history = context.read<HistoryCubit>();
-    history.changeMonth(date.month, date.year);
-    history.changeCategoryFilter(
-      slice.categoryId == 'unknown' ? null : slice.categoryId,
-    );
-    context.push('/history');
+
+    history
+      ..changeMonth(date.month, date.year)
+      ..changeFilter(HistoryFilterType.expense)
+      ..changeCategoryFilter(
+        slice.categoryId == 'unknown' ? null : slice.categoryId,
+      );
+
+    await context.push('/history');
+
+    // Возвращаемся: сбрасываем фильтры, чтобы они не «залипали» в истории.
+    history
+      ..changeCategoryFilter(null)
+      ..changeFilter(HistoryFilterType.all);
   }
 
   void _showCategoryPreview(AnalyticsSlice slice) {
@@ -88,7 +108,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final matches = state.monthExpenses.where((e) {
       final key = e.categoryId.isEmpty ? 'unknown' : e.categoryId;
       return key == slice.categoryId;
-    }).toList()..sort((a, b) => b.price.compareTo(a.price));
+    }).toList()
+      ..sort((a, b) => b.price.compareTo(a.price));
 
     showDialog<void>(
       context: context,
@@ -121,12 +142,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     return MultiBlocListener(
       listeners: [
         BlocListener<HistoryCubit, HistoryState>(
-          listenWhen: (prev, curr) => prev.allRecords != curr.allRecords,
-          listener: (_, _) => _refreshAnalytics(),
+          // HistoryExpense - Equatable, поэтому сравнение по значению
+          // срабатывает только при реальном изменении данных.
+          listenWhen: (prev, curr) =>
+              !listEquals(prev.allRecords, curr.allRecords),
+          listener: (_, __) => _refreshAnalytics(),
         ),
         BlocListener<CategoriesCubit, CategoriesState>(
           listenWhen: (prev, curr) => prev != curr,
-          listener: (_, _) => _refreshAnalytics(),
+          listener: (_, __) => _refreshAnalytics(),
         ),
       ],
       child: Scaffold(
@@ -138,7 +162,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               if (state.isLoading) return const LuminaLoadingWidget();
               if (state.errorMessage != null) {
                 return ErrorView(
-                  message: state.errorMessage!,
+                  message: loc.analyticsError,
                   onRetry: _refreshAnalytics,
                 );
               }

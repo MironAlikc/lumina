@@ -44,6 +44,9 @@ class _AnalyticsPieChartState extends State<AnalyticsPieChart> {
     )..maximumFractionDigits = 0;
     final state = widget.state;
 
+    // Диаметр центрального отверстия
+    final innerDiameter = widget.centerRadius * 2;
+
     return GestureDetector(
       onHorizontalDragEnd: widget.onHorizontalDragEnd,
       child: SizedBox(
@@ -99,36 +102,55 @@ class _AnalyticsPieChartState extends State<AnalyticsPieChart> {
                 }).toList(),
               ),
             ),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  loc.total,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: LuminaColors.textSecondary,
-                    letterSpacing: 0.4,
+            // Строго ограничиваем область по размеру внутреннего кругадиаграммы
+            SizedBox(
+              width: innerDiameter * 0.92,
+              height: innerDiameter * 0.92,
+              child: Center(
+                child: SingleChildScrollView(
+                  physics: const NeverScrollableScrollPhysics(),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        loc.total,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: LuminaColors.textSecondary,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                      const SizedBox(height: 1),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          '${whole.format(state.totalSpent)} ${widget.currencySymbol}',
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: LuminaColors.textMain,
+                          ),
+                        ),
+                      ),
+                      if (state.previousMonthTotal != null &&
+                          state.previousMonthTotal! > 0) ...[
+                        const SizedBox(height: 2),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: AnalyticsComparisonBadge(
+                            percentChange: ((state.totalSpent -
+                                        state.previousMonthTotal!) /
+                                    state.previousMonthTotal!) *
+                                100,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  '${whole.format(state.totalSpent)} ${widget.currencySymbol}',
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                    color: LuminaColors.textMain,
-                  ),
-                ),
-                if (state.previousMonthTotal != null &&
-                    state.previousMonthTotal! > 0)
-                  AnalyticsComparisonBadge(
-                    percentChange:
-                        ((state.totalSpent - state.previousMonthTotal!) /
-                            state.previousMonthTotal!) *
-                        100,
-                  ),
-              ],
+              ),
             ),
           ],
         ),

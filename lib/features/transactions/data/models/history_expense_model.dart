@@ -50,6 +50,7 @@ class HistoryExpenseModel extends HiveObject {
   });
 
   bool get isIncome => type == TransactionType.income;
+  bool get isExpense => type == TransactionType.expense;
   bool get isTransfer => type == TransactionType.transfer;
 
   HistoryExpenseModel copyWith({
@@ -79,16 +80,25 @@ class HistoryExpenseModel extends HiveObject {
   }
 
   HistoryExpense toEntity() => HistoryExpense(
-    id: id,
-    date: date,
-    productName: productName,
-    price: price,
-    category: categoryId,
-    type: type.name,
-    isSynced: isSynced,
-  );
+        id: id,
+        date: date,
+        productName: productName,
+        price: price,
+        category: categoryId,
+        type: type.name,
+        isSynced: isSynced,
+        accountId: accountId,
+        targetAccountId: targetAccountId,
+      );
 
   factory HistoryExpenseModel.fromEntity(HistoryExpense entity) {
+    TransactionType parsedType = TransactionType.expense;
+    if (entity.type == 'income') {
+      parsedType = TransactionType.income;
+    } else if (entity.type == 'transfer') {
+      parsedType = TransactionType.transfer;
+    }
+
     return HistoryExpenseModel(
       id: entity.id,
       date: entity.date,
@@ -96,12 +106,10 @@ class HistoryExpenseModel extends HiveObject {
       price: entity.price,
       categoryId: entity.category,
       categoryName: null,
-      type: entity.type == 'income'
-          ? TransactionType.income
-          : entity.type == 'transfer'
-          ? TransactionType.transfer
-          : TransactionType.expense,
+      type: parsedType,
       isSynced: entity.isSynced,
+      accountId: entity.accountId,
+      targetAccountId: entity.targetAccountId,
     );
   }
 

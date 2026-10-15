@@ -209,6 +209,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get amountRequired => 'Введите сумму больше нуля';
 
   @override
+  String get invalidNumber => 'Неверный формат числа';
+
+  @override
   String get january => 'Январь';
 
   @override
@@ -469,4 +472,174 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get scanningReceipt => 'Читаем чек…';
+
+  @override
+  String get scanUnavailable =>
+      'Распознавание чеков недоступно на этом устройстве';
+
+  @override
+  String get qrNotFiscal =>
+      'Этот QR-код не является поддерживаемым фискальным чеком';
+
+  @override
+  String get transfer => 'Перевод';
+
+  @override
+  String get transactionDetails => 'Детали транзакции';
+
+  @override
+  String get nameLabel => 'Название';
+
+  @override
+  String get categoryLabel => 'Категория';
+
+  @override
+  String get amountLabel => 'Сумма';
+
+  @override
+  String get dateLabel => 'Дата';
+
+  @override
+  String get transactionDeleted => 'Транзакция удалена';
+
+  @override
+  String get undo => 'Отменить';
+
+  @override
+  String get accountsTotalBalance => 'Общий баланс';
+
+  @override
+  String get accountsSectionTitle => 'Счета';
+
+  @override
+  String get noAccounts => 'Пока нет счетов.\nНажмите +, чтобы добавить.';
+
+  @override
+  String get newAccount => 'Новый счёт';
+
+  @override
+  String get editAccount => 'Изменить счёт';
+
+  @override
+  String get accountName => 'Название счёта';
+
+  @override
+  String get accountNameRequired => 'Введите название';
+
+  @override
+  String get accountBalance => 'Баланс';
+
+  @override
+  String get colorLabel => 'Цвет';
+
+  @override
+  String get accountInUse => 'По счёту есть операции, удалить его нельзя';
+
+  @override
+  String get accountSaveFailed => 'Не удалось сохранить счёт';
+
+  @override
+  String get deleteAccountTitle => 'Удалить счёт?';
+
+  @override
+  String deleteAccountConfirm(String name) {
+    return 'Удалить «$name»?';
+  }
+
+  @override
+  String get accountLabel => 'Счёт';
+
+  @override
+  String get targetAccountLabel => 'Счёт назначения';
+
+  @override
+  String get createAccountFirst => 'Сначала создайте счёт';
+
+  @override
+  String get saveFailed => 'Не удалось сохранить. Попробуйте ещё раз.';
+
+  @override
+  String budgetRemaining(String amount) {
+    return 'Осталось $amount';
+  }
+
+  @override
+  String budgetOver(String amount) {
+    return 'Превышение на $amount';
+  }
+
+  @override
+  String spentThisMonth(String amount) {
+    return 'Потрачено в этом месяце: $amount';
+  }
+
+  @override
+  String budgetsSummary(String spent, String limit) {
+    return 'Потрачено $spent из $limit';
+  }
+
+  @override
+  String get copyFromPreviousMonth => 'Скопировать лимиты прошлого месяца';
+
+  @override
+  String get limitsCopied => 'Лимиты скопированы';
+
+  @override
+  String get nothingToCopy => 'Нет новых лимитов для копирования';
+
+  @override
+  String get limitDeleted => 'Лимит удалён';
+
+  @override
+  String get noExpenseCategories => 'Нет категорий расходов';
+
+  @override
+  String get currencyChangeNote =>
+      'Сумы не пересчитываются: меняется только символ валюты.';
+
+  @override
+  String get search => 'Поиск транзакций...';
+
+  @override
+  String get previousMonth => 'Предыдущий месяц';
+
+  @override
+  String get nextMonth => 'Следующий месяц';
+
+  @override
+  String get appLock => 'Блокировка приложения';
+
+  @override
+  String get appLockSubtitle =>
+      'Запрашивать Face ID, отпечаток или код устройства при входе';
+
+  @override
+  String get appLockUnavailable =>
+      'Сначала настройте блокировку экрана или биометрию на устройстве';
+
+  @override
+  String get unlockReason => 'Разблокировать Lumina';
+
+  @override
+  String get unlock => 'Разблокировать';
+
+  @override
+  String get editRecurring => 'Изменить регулярный платёж';
+
+  @override
+  String get recurringDeleted => 'Регулярный платёж удалён';
+
+  @override
+  String get recurringShortMonthNote =>
+      'В коротких месяцах списывается в последний день';
+
+  @override
+  String recurringMonthlyExpenses(String amount) {
+    return 'Расходы в месяц: $amount';
+  }
+
+  @override
+  String recurringMonthlyIncome(String amount) {
+    return 'Доходы в месяц: $amount';
+  }
 }

@@ -66,6 +66,7 @@
   "otherCategory": "Другое",
   "defaultTransactionName": "Транзакция",
   "amountRequired": "Введите сумму больше нуля",
+  "invalidNumber": "Неверный формат числа",
   "january": "Январь",
   "february": "Февраль",
   "march": "Март",
@@ -98,30 +99,76 @@
   "currencyEur": "Евро",
   "insightNoData": "В этом месяце нет расходов.",
   "insightTopSpend": "🔥 Больше всего тратите на «{category}» ({percent}% от расходов).",
+  "@insightTopSpend": {
+    "placeholders": {
+      "category": { "type": "String" },
+      "percent": { "type": "String" }
+    }
+  },
   "analyticsError": "Не удалось посчитать аналитику.",
   "analyticsCategoriesTab": "Категории",
   "analyticsTrendTab": "Динамика",
   "tapToViewTransactions": "Нажмите, чтобы посмотреть операции",
   "moreThanLastMonth": "+{percent}% к прошлому месяцу",
+  "@moreThanLastMonth": {
+    "placeholders": {
+      "percent": { "type": "String" }
+    }
+  },
   "lessThanLastMonth": "-{percent}% к прошлому месяцу",
+  "@lessThanLastMonth": {
+    "placeholders": {
+      "percent": { "type": "String" }
+    }
+  },
   "topTransactions": "Топ операций",
   "goalsTitle": "Цели и сбережения",
   "goalsEmpty": "Пока нет активных целей.\nСоздайте копилку, чтобы начать откладывать.",
   "goalsSaved": "Накоплено: {amount}",
+  "@goalsSaved": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
   "goalsTarget": "Цель: {amount}",
+  "@goalsTarget": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
   "goalsTopUp": "Пополнить",
   "goalsNew": "Новая цель",
   "goalsCreateTitle": "Создать копилку",
   "goalsNameHint": "Название цели",
   "goalsAmountHint": "Целевая сумма ({symbol})",
+  "@goalsAmountHint": {
+    "placeholders": {
+      "symbol": { "type": "String" }
+    }
+  },
   "goalsIconLabel": "Иконка",
   "goalsCreate": "Создать цель",
   "goalsCancel": "Отмена",
   "goalsDepositTitle": "Пополнить «{title}»",
+  "@goalsDepositTitle": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
   "goalsDepositAmount": "Сумма ({symbol})",
+  "@goalsDepositAmount": {
+    "placeholders": {
+      "symbol": { "type": "String" }
+    }
+  },
   "goalsDeposit": "Внести",
   "goalsDeleteTitle": "Удалить цель?",
   "goalsDeleteConfirm": "Удалить «{title}» и весь прогресс?",
+  "@goalsDeleteConfirm": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
   "goalsDelete": "Удалить",
   "exportColId": "ID",
   "exportColDate": "Дата",
@@ -131,6 +178,12 @@
   "exportColType": "Тип",
   "exportNoCategory": "Без категории",
   "exportShareText": "Отчёт Lumina за {month}.{year}",
+  "@exportShareText": {
+    "placeholders": {
+      "month": { "type": "String" },
+      "year": { "type": "String" }
+    }
+  },
   "matrixIncomeTotal": "Всего доходов",
   "matrixExpenseTotal": "Всего расходов",
   "matrixNet": "Баланс",
@@ -145,5 +198,69 @@
   "scanNothingFound": "Сумма не найдена. Введите вручную.",
   "receiptLines": "Позиции",
   "permissionCameraDenied": "Нужен доступ к камере, чтобы сканировать чеки",
-  "scanningReceipt": "Читаем чек…"
+  "scanningReceipt": "Читаем чек…",
+  "scanUnavailable": "Распознавание чеков недоступно на этом устройстве",
+  "qrNotFiscal": "Этот QR-код не является поддерживаемым фискальным чеком",
+  "transfer": "Перевод",
+  "transactionDetails": "Детали транзакции",
+  "nameLabel": "Название",
+  "categoryLabel": "Категория",
+  "amountLabel": "Сумма",
+  "dateLabel": "Дата",
+  "transactionDeleted": "Транзакция удалена",
+  "undo": "Отменить",
+  "accountsTotalBalance": "Общий баланс",
+  "accountsSectionTitle": "Счета",
+  "noAccounts": "Пока нет счетов.\nНажмите +, чтобы добавить.",
+  "newAccount": "Новый счёт",
+  "editAccount": "Изменить счёт",
+  "accountName": "Название счёта",
+  "accountNameRequired": "Введите название",
+  "accountBalance": "Баланс",
+  "colorLabel": "Цвет",
+  "accountInUse": "По счёту есть операции, удалить его нельзя",
+  "accountSaveFailed": "Не удалось сохранить счёт",
+  "deleteAccountTitle": "Удалить счёт?",
+  "deleteAccountConfirm": "Удалить «{name}»?",
+  "@deleteAccountConfirm": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "accountLabel": "Счёт",
+  "targetAccountLabel": "Счёт назначения",
+  "createAccountFirst": "Сначала создайте счёт",
+  "saveFailed": "Не удалось сохранить. Попробуйте ещё раз.",
+  "budgetRemaining": "Осталось {amount}",
+  "@budgetRemaining": { "placeholders": { "amount": { "type": "String" } } },
+  "budgetOver": "Превышение на {amount}",
+  "@budgetOver": { "placeholders": { "amount": { "type": "String" } } },
+  "spentThisMonth": "Потрачено в этом месяце: {amount}",
+  "@spentThisMonth": { "placeholders": { "amount": { "type": "String" } } },
+  "budgetsSummary": "Потрачено {spent} из {limit}",
+  "@budgetsSummary": {
+    "placeholders": {
+      "spent": { "type": "String" },
+      "limit": { "type": "String" }
+    }
+  },
+  "copyFromPreviousMonth": "Скопировать лимиты прошлого месяца",
+  "limitsCopied": "Лимиты скопированы",
+  "nothingToCopy": "Нет новых лимитов для копирования",
+  "limitDeleted": "Лимит удалён",
+  "noExpenseCategories": "Нет категорий расходов",
+  "currencyChangeNote": "Сумы не пересчитываются: меняется только символ валюты.",
+  "search": "Поиск транзакций...",
+  "previousMonth": "Предыдущий месяц",
+"nextMonth": "Следующий месяц",
+"appLock": "Блокировка приложения",
+"appLockSubtitle": "Запрашивать Face ID, отпечаток или код устройства при входе",
+"appLockUnavailable": "Сначала настройте блокировку экрана или биометрию на устройстве",
+"unlockReason": "Разблокировать Lumina",
+"unlock": "Разблокировать",
+"editRecurring": "Изменить регулярный платёж",
+"recurringDeleted": "Регулярный платёж удалён",
+"recurringShortMonthNote": "В коротких месяцах списывается в последний день",
+"recurringMonthlyExpenses": "Расходы в месяц: {amount}",
+"recurringMonthlyIncome": "Доходы в месяц: {amount}"
 }

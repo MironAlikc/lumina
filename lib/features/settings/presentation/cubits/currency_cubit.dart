@@ -9,17 +9,21 @@ class CurrencyCubit extends Cubit<AppCurrency> {
 
   CurrencyCubit() : super(AppCurrency.uah);
 
+  /// Вызывается при запуске приложения для гидратации сохранённой валюты
   Future<void> hydrate() async {
     try {
       final box = await _settingsBox();
       final saved = box.get(currencyKey);
       final currency = AppCurrency.fromStored(saved is String ? saved : null);
-      if (currency != state) emit(currency);
+      if (currency != state) {
+        emit(currency);
+      }
     } catch (e, st) {
-      debugPrint('Error loading currency: $e\n$st');
+      debugPrint('Error hydrating currency settings: $e\n$st');
     }
   }
 
+  /// Изменение текущей валюты с сохранением в Hive
   Future<void> changeCurrency(AppCurrency currency) async {
     if (currency == state) return;
     try {
@@ -27,7 +31,7 @@ class CurrencyCubit extends Cubit<AppCurrency> {
       await box.put(currencyKey, currency.name);
       emit(currency);
     } catch (e, st) {
-      debugPrint('Error saving currency: $e\n$st');
+      debugPrint('Error saving currency setting: $e\n$st');
     }
   }
 

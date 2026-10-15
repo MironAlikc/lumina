@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lumina/features/analytics/data/models/analytics_daily_point.dart';
 import 'package:lumina/features/analytics/domain/usecases/calculate_month_analytics.dart';
@@ -11,14 +12,15 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
   AnalyticsCubit({
     required CalculateMonthAnalytics calculateMonthAnalytics,
     CategoryDisplayMapper categoryDisplayMapper = const CategoryDisplayMapper(),
-  }) : _calculate = calculateMonthAnalytics,
-       _mapper = categoryDisplayMapper,
-       super(AnalyticsState.initial());
+  })  : _calculate = calculateMonthAnalytics,
+        _mapper = categoryDisplayMapper,
+        super(AnalyticsState.initial());
 
   final CalculateMonthAnalytics _calculate;
   final CategoryDisplayMapper _mapper;
 
   void toggleChartMode(bool isLine) {
+    if (state.isLineChartMode == isLine) return;
     emit(state.copyWith(isLineChartMode: isLine));
   }
 
@@ -39,36 +41,39 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
     _run(records, categories, loc, DateTime(date.year, date.month));
   }
 
+  /// Расчёт синхронный, поэтому промежуточное состояние загрузки не
+  /// эмитируется: оно только мерцало бы при свайпе по месяцам.
   void _run(
     List<HistoryExpenseModel> records,
     List<CustomCategory> categories,
     AppLocalizations loc,
     DateTime selected,
   ) {
+    if (isClosed) return;
     try {
-      emit(state.copyWith(isLoading: true, clearError: true));
-
       final report = _calculate(records: records, selected: selected);
 
-      final slices = report.byCategory.map((item) {
-        final display = _mapper.resolve(
-          categoryId: item.categoryId,
-          storedName: item.storedName,
-          categories: categories,
-          loc: loc,
-        );
-        return AnalyticsSlice(
-          categoryId: item.categoryId,
-          name: display.name,
-          amount: item.amount,
-          colorHex: display.colorHex,
-        );
-      }).toList();
+      final slices = [
+        for (final item in report.byCategory)
+          () {
+            final display = _mapper.resolve(
+              categoryId: item.categoryId,
+              storedName: item.storedName,
+              categories: categories,
+              loc: loc,
+            );
+            return AnalyticsSlice(
+              categoryId: item.categoryId,
+              name: display.name,
+              amount: item.amount,
+              colorHex: display.colorHex,
+            );
+          }(),
+      ];
 
       final insight = slices.isEmpty
           ? ''
-          : _topInsight(
-              loc,
+          : loc.insightTopSpend(
               slices.first.name,
               slices.first.percentOf(report.totalSpent).toStringAsFixed(0),
             );
@@ -89,19 +94,9 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
           monthExpenses: report.monthExpenses,
         ),
       );
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('Analytics calculation failed: $e\n$st');
       emit(state.copyWith(isLoading: false, errorMessage: e.toString()));
     }
-  }
-
-  String _topInsight(AppLocalizations loc, String name, String percent) {
-    final code = loc.localeName;
-    if (code.startsWith('uk')) {
-      return '🔥 Найбільше витрачаєте на «$name» ($percent% від витрат).';
-    }
-    if (code.startsWith('en')) {
-      return '🔥 You spend the most on “$name” ($percent% of expenses).';
-    }
-    return '🔥 Больше всего тратите на «$name» ($percent% от расходов).';
   }
 }

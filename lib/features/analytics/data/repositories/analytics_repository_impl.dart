@@ -5,25 +5,22 @@ import 'package:lumina/features/analytics/domain/repositories/analytics_reposito
 import 'package:lumina/features/transactions/data/models/history_expense_model.dart';
 
 class AnalyticsRepositoryImpl implements IAnalyticsRepository {
+  Box<HistoryExpenseModel> get _box =>
+      Hive.box<HistoryExpenseModel>(HiveClient.historyBox);
+
   @override
   List<AnalyticsProductModel> searchByProductName(String query) {
-    final trimmed = query.toLowerCase().trim();
-    if (trimmed.isEmpty) return const [];
+    final needle = query.toLowerCase().trim();
+    if (needle.isEmpty) return const [];
 
-    final box = Hive.box<HistoryExpenseModel>(HiveClient.boxName);
-    final results =
-        box.values
-            .where((e) => e.productName.toLowerCase().contains(trimmed))
-            .map(
-              (e) => AnalyticsProductModel(
-                productName: e.productName,
-                date: e.date,
-                price: e.price,
-              ),
-            )
-            .toList()
-          ..sort((a, b) => b.date.compareTo(a.date));
-
-    return results;
+    return [
+      for (final e in _box.values)
+        if (e.productName.toLowerCase().contains(needle))
+          AnalyticsProductModel(
+            productName: e.productName,
+            date: e.date,
+            price: e.price,
+          ),
+    ]..sort((a, b) => b.date.compareTo(a.date));
   }
 }

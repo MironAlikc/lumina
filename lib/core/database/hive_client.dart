@@ -7,16 +7,12 @@ import 'package:lumina/features/goals/data/models/goal_expense_model.dart';
 import 'package:lumina/features/recurring/data/models/recurring_expense_model.dart';
 import 'package:lumina/features/transactions/data/models/history_expense_model.dart';
 
-/// Единственная точка Hive.
+/// Единственная точка инициализации Hive.
+/// Перед вызовом нужен Hive.initFlutter().
 ///
-/// typeId:
-/// 0 TransactionType
-/// 1 HistoryExpenseModel
-/// 2 CustomCategory
-/// 3 GoalExpenseModel
-/// 4 BudgetModel
-/// 5 RecurringExpenseModel
-/// 6 AccountModel
+/// Адаптеры (typeId указан в самих моделях, здесь он только проверяется):
+/// TransactionType, HistoryExpenseModel, CustomCategory, GoalExpenseModel,
+/// BudgetModel, RecurringExpenseModel, AccountModel.
 class HiveClient {
   static const historyBox = 'history_box';
   static const accountsBox = 'accounts_box';
@@ -26,21 +22,29 @@ class HiveClient {
   static const budgetsBox = 'budgets_box';
   static const recurringBox = 'recurring_expenses_box';
 
-  /// Старое имя. Не удалять — HistoryRepositoryImpl на него ссылается.
-  static const String boxName = historyBox;
+  /// typeId -> тип модели: ловит два адаптера с одним номером.
+  static final _adapterOwners = <int, Type>{};
 
   Future<void> init() async {
-    await Hive.initFlutter();
     _registerAdapters();
-    await Future.wait([
-      _openTyped<HistoryExpenseModel>(historyBox),
-      _openTyped<AccountModel>(accountsBox),
-      _openTyped<CustomCategory>(categoriesBox),
-      _openTyped<GoalExpenseModel>(goalsBox),
-      _openTyped<BudgetModel>(budgetsBox),
-      _openTyped<RecurringExpenseModel>(recurringBox),
-      _openUntyped(settingsBox),
-    ]);
+
+    try {
+      // Боксы независимы, открываем параллельно: старт быстрее.
+      await Future.wait([
+        _openTyped<HistoryExpenseModel>(historyBox),
+        _openTyped<AccountModel>(accountsBox),
+        _openTyped<CustomCategory>(categoriesBox),
+        _openTyped<GoalExpenseModel>(goalsBox),
+        _openTyped<BudgetModel>(budgetsBox),
+        _openTyped<RecurringExpenseModel>(recurringBox),
+        _openUntyped(settingsBox),
+      ]);
+    } catch (e, st) {
+      debugPrint('HiveClient initialization failed: $e\n$st');
+      // Закрываем только в памяти: файлы на диске не трогаем.
+      await Hive.close();
+      rethrow;
+    }
   }
 
   void _registerAdapters() {
@@ -54,43 +58,28 @@ class HiveClient {
   }
 
   void _register<T>(TypeAdapter<T> adapter) {
+    final owner = _adapterOwners[adapter.typeId];
+    if (owner != null && owner != T) {
+      final message =
+          'Hive typeId ${adapter.typeId} используют и $owner, и $T. '
+          'Запись $T будет падать: дайте моделям разные typeId.';
+      if (kDebugMode) throw StateError(message);
+      debugPrint(message);
+      return;
+    }
     if (!Hive.isAdapterRegistered(adapter.typeId)) {
       Hive.registerAdapter<T>(adapter);
     }
+    _adapterOwners[adapter.typeId] = T;
   }
 
   Future<void> _openTyped<T>(String name) async {
     if (Hive.isBoxOpen(name)) return;
-    try {
-      await Hive.openBox<T>(name);
-    } catch (e) {
-      debugPrint('Typed $name open failed: $e');
-      try {
-        final raw = await Hive.openBox(name);
-        final recovered = <dynamic, T>{};
-        for (final entry in raw.toMap().entries) {
-          final value = entry.value;
-          if (value is T) recovered[entry.key] = value;
-        }
-        await raw.close();
-        await Hive.deleteBoxFromDisk(name);
-        final box = await Hive.openBox<T>(name);
-        if (recovered.isNotEmpty) await box.putAll(recovered);
-      } catch (e2, st) {
-        debugPrint('$name recovery failed: $e2\n$st');
-        await Hive.deleteBoxFromDisk(name);
-        await Hive.openBox<T>(name);
-      }
-    }
+    await Hive.openBox<T>(name);
   }
 
   Future<void> _openUntyped(String name) async {
-    try {
-      if (!Hive.isBoxOpen(name)) await Hive.openBox(name);
-    } catch (e, st) {
-      debugPrint('$name damaged, recreating: $e\n$st');
-      await Hive.deleteBoxFromDisk(name);
-      await Hive.openBox(name);
-    }
+    if (Hive.isBoxOpen(name)) return;
+    await Hive.openBox<dynamic>(name);
   }
 }

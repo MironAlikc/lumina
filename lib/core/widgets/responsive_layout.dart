@@ -1,6 +1,6 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
+/// Ограничивает ширину содержимого на планшетах и в landscape.
 class ResponsiveLayout extends StatelessWidget {
   const ResponsiveLayout({super.key, required this.child, this.maxWidth = 720});
 
@@ -9,16 +9,12 @@ class ResponsiveLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Align(
-          alignment: Alignment.topCenter,
-          child: SizedBox(
-            width: math.min(maxWidth, constraints.maxWidth),
-            child: child,
-          ),
-        );
-      },
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: child,
+      ),
     );
   }
 }

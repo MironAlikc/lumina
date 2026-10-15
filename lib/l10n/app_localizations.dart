@@ -64,7 +64,7 @@ import 'app_localizations_uk.dart';
 /// property.
 abstract class AppLocalizations {
   AppLocalizations(String locale)
-    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+      : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -87,17 +87,17 @@ abstract class AppLocalizations {
   /// of delegates is preferred or required.
   static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
       <LocalizationsDelegate<dynamic>>[
-        delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-      ];
+    delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+  ];
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
     Locale('ru'),
-    Locale('uk'),
+    Locale('uk')
   ];
 
   /// No description provided for @appName.
@@ -495,6 +495,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter an amount greater than zero'**
   String get amountRequired;
+
+  /// No description provided for @invalidNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid number'**
+  String get invalidNumber;
 
   /// No description provided for @january.
   ///
@@ -975,6 +981,306 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reading receipt…'**
   String get scanningReceipt;
+
+  /// No description provided for @scanUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Receipt recognition isn\'t available on this device'**
+  String get scanUnavailable;
+
+  /// No description provided for @qrNotFiscal.
+  ///
+  /// In en, this message translates to:
+  /// **'This QR code isn\'t a supported fiscal receipt'**
+  String get qrNotFiscal;
+
+  /// No description provided for @transfer.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer'**
+  String get transfer;
+
+  /// No description provided for @transactionDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction details'**
+  String get transactionDetails;
+
+  /// No description provided for @nameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get nameLabel;
+
+  /// No description provided for @categoryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get categoryLabel;
+
+  /// No description provided for @amountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get amountLabel;
+
+  /// No description provided for @dateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get dateLabel;
+
+  /// No description provided for @transactionDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction deleted'**
+  String get transactionDeleted;
+
+  /// No description provided for @undo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get undo;
+
+  /// No description provided for @accountsTotalBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Total balance'**
+  String get accountsTotalBalance;
+
+  /// No description provided for @accountsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Accounts'**
+  String get accountsSectionTitle;
+
+  /// No description provided for @noAccounts.
+  ///
+  /// In en, this message translates to:
+  /// **'No accounts yet.\nTap + to add one.'**
+  String get noAccounts;
+
+  /// No description provided for @newAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'New account'**
+  String get newAccount;
+
+  /// No description provided for @editAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit account'**
+  String get editAccount;
+
+  /// No description provided for @accountName.
+  ///
+  /// In en, this message translates to:
+  /// **'Account name'**
+  String get accountName;
+
+  /// No description provided for @accountNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a name'**
+  String get accountNameRequired;
+
+  /// No description provided for @accountBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance'**
+  String get accountBalance;
+
+  /// No description provided for @colorLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Color'**
+  String get colorLabel;
+
+  /// No description provided for @accountInUse.
+  ///
+  /// In en, this message translates to:
+  /// **'This account has transactions and can\'t be deleted'**
+  String get accountInUse;
+
+  /// No description provided for @accountSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the account'**
+  String get accountSaveFailed;
+
+  /// No description provided for @deleteAccountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account?'**
+  String get deleteAccountTitle;
+
+  /// No description provided for @deleteAccountConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete «{name}»?'**
+  String deleteAccountConfirm(String name);
+
+  /// No description provided for @accountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get accountLabel;
+
+  /// No description provided for @targetAccountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Destination account'**
+  String get targetAccountLabel;
+
+  /// No description provided for @createAccountFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Create an account first'**
+  String get createAccountFirst;
+
+  /// No description provided for @saveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save. Please try again.'**
+  String get saveFailed;
+
+  /// No description provided for @budgetRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} left'**
+  String budgetRemaining(String amount);
+
+  /// No description provided for @budgetOver.
+  ///
+  /// In en, this message translates to:
+  /// **'Over by {amount}'**
+  String budgetOver(String amount);
+
+  /// No description provided for @spentThisMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Spent this month: {amount}'**
+  String spentThisMonth(String amount);
+
+  /// No description provided for @budgetsSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Spent {spent} of {limit}'**
+  String budgetsSummary(String spent, String limit);
+
+  /// No description provided for @copyFromPreviousMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy limits from previous month'**
+  String get copyFromPreviousMonth;
+
+  /// No description provided for @limitsCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Limits copied'**
+  String get limitsCopied;
+
+  /// No description provided for @nothingToCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'No new limits to copy'**
+  String get nothingToCopy;
+
+  /// No description provided for @limitDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Limit deleted'**
+  String get limitDeleted;
+
+  /// No description provided for @noExpenseCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'No expense categories yet'**
+  String get noExpenseCategories;
+
+  /// No description provided for @currencyChangeNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Amounts are not converted: only the currency symbol changes.'**
+  String get currencyChangeNote;
+
+  /// No description provided for @search.
+  ///
+  /// In en, this message translates to:
+  /// **'Search transactions...'**
+  String get search;
+
+  /// No description provided for @previousMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous month'**
+  String get previousMonth;
+
+  /// No description provided for @nextMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Next month'**
+  String get nextMonth;
+
+  /// No description provided for @appLock.
+  ///
+  /// In en, this message translates to:
+  /// **'App lock'**
+  String get appLock;
+
+  /// No description provided for @appLockSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask for Face ID, fingerprint or device passcode when opening the app'**
+  String get appLockSubtitle;
+
+  /// No description provided for @appLockUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up a screen lock or biometrics on your device first'**
+  String get appLockUnavailable;
+
+  /// No description provided for @unlockReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock Lumina'**
+  String get unlockReason;
+
+  /// No description provided for @unlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock'**
+  String get unlock;
+
+  /// No description provided for @editRecurring.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit recurring payment'**
+  String get editRecurring;
+
+  /// No description provided for @recurringDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Recurring payment deleted'**
+  String get recurringDeleted;
+
+  /// No description provided for @recurringShortMonthNote.
+  ///
+  /// In en, this message translates to:
+  /// **'In shorter months it is charged on the last day'**
+  String get recurringShortMonthNote;
+
+  /// No description provided for @recurringMonthlyExpenses.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly expenses: {amount}'**
+  String recurringMonthlyExpenses(String amount);
+
+  /// No description provided for @recurringMonthlyIncome.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly income: {amount}'**
+  String recurringMonthlyIncome(String amount);
 }
 
 class _AppLocalizationsDelegate
@@ -1006,9 +1312,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
   }
 
   throw FlutterError(
-    'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
-    'an issue with the localizations generation tool. Please file an issue '
-    'on GitHub with a reproducible sample app and the gen-l10n configuration '
-    'that was used.',
-  );
+      'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+      'an issue with the localizations generation tool. Please file an issue '
+      'on GitHub with a reproducible sample app and the gen-l10n configuration '
+      'that was used.');
 }

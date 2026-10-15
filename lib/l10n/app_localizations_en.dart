@@ -210,6 +210,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get amountRequired => 'Enter an amount greater than zero';
 
   @override
+  String get invalidNumber => 'Invalid number';
+
+  @override
   String get january => 'January';
 
   @override
@@ -470,4 +473,174 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get scanningReceipt => 'Reading receipt…';
+
+  @override
+  String get scanUnavailable =>
+      'Receipt recognition isn\'t available on this device';
+
+  @override
+  String get qrNotFiscal => 'This QR code isn\'t a supported fiscal receipt';
+
+  @override
+  String get transfer => 'Transfer';
+
+  @override
+  String get transactionDetails => 'Transaction details';
+
+  @override
+  String get nameLabel => 'Name';
+
+  @override
+  String get categoryLabel => 'Category';
+
+  @override
+  String get amountLabel => 'Amount';
+
+  @override
+  String get dateLabel => 'Date';
+
+  @override
+  String get transactionDeleted => 'Transaction deleted';
+
+  @override
+  String get undo => 'Undo';
+
+  @override
+  String get accountsTotalBalance => 'Total balance';
+
+  @override
+  String get accountsSectionTitle => 'Accounts';
+
+  @override
+  String get noAccounts => 'No accounts yet.\nTap + to add one.';
+
+  @override
+  String get newAccount => 'New account';
+
+  @override
+  String get editAccount => 'Edit account';
+
+  @override
+  String get accountName => 'Account name';
+
+  @override
+  String get accountNameRequired => 'Enter a name';
+
+  @override
+  String get accountBalance => 'Balance';
+
+  @override
+  String get colorLabel => 'Color';
+
+  @override
+  String get accountInUse =>
+      'This account has transactions and can\'t be deleted';
+
+  @override
+  String get accountSaveFailed => 'Couldn\'t save the account';
+
+  @override
+  String get deleteAccountTitle => 'Delete account?';
+
+  @override
+  String deleteAccountConfirm(String name) {
+    return 'Delete «$name»?';
+  }
+
+  @override
+  String get accountLabel => 'Account';
+
+  @override
+  String get targetAccountLabel => 'Destination account';
+
+  @override
+  String get createAccountFirst => 'Create an account first';
+
+  @override
+  String get saveFailed => 'Couldn\'t save. Please try again.';
+
+  @override
+  String budgetRemaining(String amount) {
+    return '$amount left';
+  }
+
+  @override
+  String budgetOver(String amount) {
+    return 'Over by $amount';
+  }
+
+  @override
+  String spentThisMonth(String amount) {
+    return 'Spent this month: $amount';
+  }
+
+  @override
+  String budgetsSummary(String spent, String limit) {
+    return 'Spent $spent of $limit';
+  }
+
+  @override
+  String get copyFromPreviousMonth => 'Copy limits from previous month';
+
+  @override
+  String get limitsCopied => 'Limits copied';
+
+  @override
+  String get nothingToCopy => 'No new limits to copy';
+
+  @override
+  String get limitDeleted => 'Limit deleted';
+
+  @override
+  String get noExpenseCategories => 'No expense categories yet';
+
+  @override
+  String get currencyChangeNote =>
+      'Amounts are not converted: only the currency symbol changes.';
+
+  @override
+  String get search => 'Search transactions...';
+
+  @override
+  String get previousMonth => 'Previous month';
+
+  @override
+  String get nextMonth => 'Next month';
+
+  @override
+  String get appLock => 'App lock';
+
+  @override
+  String get appLockSubtitle =>
+      'Ask for Face ID, fingerprint or device passcode when opening the app';
+
+  @override
+  String get appLockUnavailable =>
+      'Set up a screen lock or biometrics on your device first';
+
+  @override
+  String get unlockReason => 'Unlock Lumina';
+
+  @override
+  String get unlock => 'Unlock';
+
+  @override
+  String get editRecurring => 'Edit recurring payment';
+
+  @override
+  String get recurringDeleted => 'Recurring payment deleted';
+
+  @override
+  String get recurringShortMonthNote =>
+      'In shorter months it is charged on the last day';
+
+  @override
+  String recurringMonthlyExpenses(String amount) {
+    return 'Monthly expenses: $amount';
+  }
+
+  @override
+  String recurringMonthlyIncome(String amount) {
+    return 'Monthly income: $amount';
+  }
 }

@@ -32,7 +32,7 @@ class AccountState {
 
   @override
   bool operator ==(Object other) {
-    if (identical(this, other)) return true; // Исправлено: возвращаем true
+    if (identical(this, other)) return true;
     return other is AccountState &&
         listEquals(other.accounts, accounts) &&
         other.isLoading == isLoading &&

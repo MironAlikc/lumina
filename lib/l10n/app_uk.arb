@@ -66,6 +66,7 @@
   "otherCategory": "Інше",
   "defaultTransactionName": "Транзакція",
   "amountRequired": "Введіть суму більше нуля",
+  "invalidNumber": "Невірний формат числа",
   "january": "Січень",
   "february": "Лютий",
   "march": "Березень",
@@ -98,30 +99,76 @@
   "currencyEur": "Євро",
   "insightNoData": "Цього місяця немає витрат.",
   "insightTopSpend": "🔥 Найбільше витрачаєте на «{category}» ({percent}% від витрат).",
+  "@insightTopSpend": {
+    "placeholders": {
+      "category": { "type": "String" },
+      "percent": { "type": "String" }
+    }
+  },
   "analyticsError": "Не вдалося порахувати аналітику.",
   "analyticsCategoriesTab": "Категорії",
   "analyticsTrendTab": "Динаміка",
   "tapToViewTransactions": "Натисніть, щоб переглянути операції",
   "moreThanLastMonth": "+{percent}% до попереднього місяця",
+  "@moreThanLastMonth": {
+    "placeholders": {
+      "percent": { "type": "String" }
+    }
+  },
   "lessThanLastMonth": "-{percent}% до попереднього місяця",
+  "@lessThanLastMonth": {
+    "placeholders": {
+      "percent": { "type": "String" }
+    }
+  },
   "topTransactions": "Топ операцій",
   "goalsTitle": "Цілі та заощадження",
   "goalsEmpty": "Поки немає активних цілей.\nСтворіть скарбничку, щоб почати відкладати.",
   "goalsSaved": "Накопичено: {amount}",
+  "@goalsSaved": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
   "goalsTarget": "Ціль: {amount}",
+  "@goalsTarget": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
   "goalsTopUp": "Поповнити",
   "goalsNew": "Нова ціль",
   "goalsCreateTitle": "Створити скарбничку",
   "goalsNameHint": "Назва цілі",
   "goalsAmountHint": "Цільова сума ({symbol})",
+  "@goalsAmountHint": {
+    "placeholders": {
+      "symbol": { "type": "String" }
+    }
+  },
   "goalsIconLabel": "Іконка",
   "goalsCreate": "Створити ціль",
   "goalsCancel": "Скасувати",
   "goalsDepositTitle": "Поповнити «{title}»",
+  "@goalsDepositTitle": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
   "goalsDepositAmount": "Сума ({symbol})",
+  "@goalsDepositAmount": {
+    "placeholders": {
+      "symbol": { "type": "String" }
+    }
+  },
   "goalsDeposit": "Внести",
   "goalsDeleteTitle": "Видалити ціль?",
   "goalsDeleteConfirm": "Видалити «{title}» і весь прогресс?",
+  "@goalsDeleteConfirm": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
   "goalsDelete": "Видалити",
   "exportColId": "ID",
   "exportColDate": "Дата",
@@ -131,6 +178,12 @@
   "exportColType": "Тип",
   "exportNoCategory": "Без категорії",
   "exportShareText": "Звіт Lumina за {month}.{year}",
+  "@exportShareText": {
+    "placeholders": {
+      "month": { "type": "String" },
+      "year": { "type": "String" }
+    }
+  },
   "matrixIncomeTotal": "Всього доходів",
   "matrixExpenseTotal": "Всього витрат",
   "matrixNet": "Баланс",
@@ -145,5 +198,69 @@
   "scanNothingFound": "Суму не знайдено. Введіть вручну.",
   "receiptLines": "Позиції",
   "permissionCameraDenied": "Потрібен доступ до камери, щоб сканувати чеки",
-  "scanningReceipt": "Читаємо чек…"
+  "scanningReceipt": "Читаємо чек…",
+  "scanUnavailable": "Розпізнавання чеків недоступне на цьому пристрої",
+  "qrNotFiscal": "Цей QR-код не є підтримуваним фіскальним чеком",
+  "transfer": "Переказ",
+  "transactionDetails": "Деталі транзакції",
+  "nameLabel": "Назва",
+  "categoryLabel": "Категорія",
+  "amountLabel": "Сума",
+  "dateLabel": "Дата",
+  "transactionDeleted": "Транзакцію видалено",
+  "undo": "Скасувати",
+  "accountsTotalBalance": "Загальний баланс",
+  "accountsSectionTitle": "Рахунки",
+  "noAccounts": "Поки немає рахунків.\nНатисніть +, щоб додати.",
+  "newAccount": "Новий рахунок",
+  "editAccount": "Змінити рахунок",
+  "accountName": "Назва рахунку",
+  "accountNameRequired": "Введіть назву",
+  "accountBalance": "Баланс",
+  "colorLabel": "Колір",
+  "accountInUse": "За рахунком є операції, видалити його не можна",
+  "accountSaveFailed": "Не вдалося зберегти рахунок",
+  "deleteAccountTitle": "Видалити рахунок?",
+  "deleteAccountConfirm": "Видалити «{name}»?",
+  "@deleteAccountConfirm": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "accountLabel": "Рахунок",
+  "targetAccountLabel": "Рахунок призначення",
+  "createAccountFirst": "Спочатку створіть рахунок",
+  "saveFailed": "Не вдалося зберегти. Спробуйте ще раз.",
+  "budgetRemaining": "Залишилось {amount}",
+  "@budgetRemaining": { "placeholders": { "amount": { "type": "String" } } },
+  "budgetOver": "Перевищення на {amount}",
+  "@budgetOver": { "placeholders": { "amount": { "type": "String" } } },
+  "spentThisMonth": "Витрачено цього місяця: {amount}",
+  "@spentThisMonth": { "placeholders": { "amount": { "type": "String" } } },
+  "budgetsSummary": "Витрачено {spent} з {limit}",
+  "@budgetsSummary": {
+    "placeholders": {
+      "spent": { "type": "String" },
+      "limit": { "type": "String" }
+    }
+  },
+  "copyFromPreviousMonth": "Скопіювати ліміти минулого місяця",
+  "limitsCopied": "Ліміти скопійовано",
+  "nothingToCopy": "Немає нових лімітів для копіювання",
+  "limitDeleted": "Ліміт видалено",
+  "noExpenseCategories": "Немає категорій витрат",
+  "currencyChangeNote": "Суми не перераховуються: змінюється лише символ валюти.",
+  "search": "Пошук транзакцій...",
+"previousMonth": "Попередній місяць",
+"nextMonth": "Наступний місяць",
+"appLock": "Блокування додатка",
+"appLockSubtitle": "Запитувати Face ID, відбиток або код пристрою під час входу",
+"appLockUnavailable": "Спочатку налаштуйте блокування екрана або біометрію на пристрої",
+"unlockReason": "Розблокувати Lumina",
+"unlock": "Розблокувати",
+"editRecurring": "Змінити регулярний платіж",
+"recurringDeleted": "Регулярний платіж видалено",
+"recurringShortMonthNote": "У коротких місяцях списується в останній день",
+"recurringMonthlyExpenses": "Витрати на місяць: {amount}",
+"recurringMonthlyIncome": "Доходи на місяць: {amount}"
 }

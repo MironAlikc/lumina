@@ -1,60 +1,52 @@
 import 'package:flutter/material.dart';
-import 'package:lumina/core/theme/lumina_theme.dart';
+import 'package:lumina/core/theme/lumina_colors.dart';
 import 'package:lumina/l10n/app_localizations.dart';
 
 class ErrorView extends StatelessWidget {
-  final String message;
-  final VoidCallback onRetry;
+  const ErrorView({super.key, required this.onRetry, this.message});
 
-  const ErrorView({super.key, required this.message, required this.onRetry});
+  /// Дополнительная подробность. Пусто или null: показывается только заголовок.
+  final String? message;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
+    final details = message?.trim() ?? '';
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(24),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(
               Icons.error_outline_rounded,
               size: 64,
-              color: LuminaTheme.accentColor,
+              color: LuminaColors.error,
             ),
             const SizedBox(height: 16),
             Text(
               loc.somethingWentWrong,
-              style: TextStyle(
+              textAlign: TextAlign.center,
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: LuminaTheme.titleColor,
+                color: LuminaColors.textMain,
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: LuminaTheme.subTitleColor),
-            ),
+            if (details.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                details,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: LuminaColors.textSecondary),
+              ),
+            ],
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: onRetry,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: LuminaTheme.accentColor,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 12,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-              child: Text(
-                loc.tryAgain,
-                style: const TextStyle(color: Colors.white),
-              ),
+              child: Text(loc.tryAgain),
             ),
           ],
         ),

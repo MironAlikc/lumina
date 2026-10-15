@@ -6,20 +6,40 @@ import 'package:lumina/core/theme/lumina_colors.dart';
 import 'package:lumina/core/theme/lumina_theme.dart';
 import 'package:lumina/core/widgets/responsive_layout.dart';
 import 'package:lumina/features/categories/data/models/custom_category_model.dart';
-import 'package:lumina/features/transactions/data/models/history_expense_model.dart';
 import 'package:lumina/features/categories/presentation/cubits/categories_cubit.dart';
 import 'package:lumina/features/categories/presentation/cubits/categories_state.dart';
+import 'package:lumina/features/dashboard/presentation/widgets/dashboard_filter_row.dart';
+import 'package:lumina/features/settings/presentation/cubits/currency_cubit.dart';
+import 'package:lumina/features/transactions/data/models/history_expense_model.dart';
 import 'package:lumina/features/transactions/presentation/cubits/history_cubit.dart';
 import 'package:lumina/features/transactions/presentation/cubits/history_state.dart';
-import 'package:lumina/features/dashboard/presentation/widgets/dashboard_filter_row.dart';
-import 'package:lumina/features/transactions/presentation/widgets/month_chips_bar.dart';
+import 'package:lumina/features/transactions/presentation/widgets/calendar/monthly_calendar_widget.dart';
 import 'package:lumina/features/transactions/presentation/widgets/grouped_transactions_list.dart';
 import 'package:lumina/features/transactions/presentation/widgets/matrix/monthly_matrix_widget.dart';
+import 'package:lumina/features/transactions/presentation/widgets/month_chips_bar.dart';
 import 'package:lumina/l10n/app_localizations.dart';
-import 'package:lumina/features/settings/presentation/cubits/currency_cubit.dart';
 
-class HistoryScreen extends StatelessWidget {
+class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
+
+  @override
+  State<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends State<HistoryScreen> {
+  late final TextEditingController _searchController;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,17 +65,23 @@ class HistoryScreen extends StatelessWidget {
           BlocBuilder<HistoryCubit, HistoryState>(
             buildWhen: (p, n) => p.viewMode != n.viewMode,
             builder: (context, state) {
-              final isTable = state.viewMode == HistoryViewMode.table;
               return IconButton(
                 icon: Icon(
-                  isTable ? Icons.list_rounded : Icons.table_chart_rounded,
+                  switch (state.viewMode) {
+                    HistoryViewMode.list => Icons.calendar_month_rounded,
+                    HistoryViewMode.calendar => Icons.table_chart_rounded,
+                    HistoryViewMode.table => Icons.format_list_bulleted_rounded,
+                  },
                   color: LuminaColors.primary,
                 ),
                 onPressed: () {
                   HapticFeedback.selectionClick();
-                  context.read<HistoryCubit>().toggleViewMode(
-                    isTable ? HistoryViewMode.list : HistoryViewMode.table,
-                  );
+                  final nextMode = switch (state.viewMode) {
+                    HistoryViewMode.list => HistoryViewMode.calendar,
+                    HistoryViewMode.calendar => HistoryViewMode.table,
+                    HistoryViewMode.table => HistoryViewMode.list,
+                  };
+                  context.read<HistoryCubit>().toggleViewMode(nextMode);
                 },
               );
             },
@@ -71,7 +97,7 @@ class HistoryScreen extends StatelessWidget {
                     ? categoryState.categories
                     : const <CustomCategory>[];
                 final cubit = context.read<HistoryCubit>();
-                final isTable = historyState.viewMode == HistoryViewMode.table;
+                final viewMode = historyState.viewMode;
 
                 return CustomScrollView(
                   physics: const BouncingScrollPhysics(),
@@ -82,11 +108,90 @@ class HistoryScreen extends StatelessWidget {
                       sliver: SliverToBoxAdapter(child: MonthChipsBar()),
                     ),
                     const SliverToBoxAdapter(child: SizedBox(height: 12)),
-                    if (!isTable)
-                      const SliverToBoxAdapter(child: DashboardFilterRow()),
-                    if (!isTable)
+                    if (viewMode == HistoryViewMode.list) ...[
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
+                          child: TextField(
+                            controller: _searchController,
+                            onChanged: cubit.changeSearchQuery,
+                            decoration: InputDecoration(
+                              hintText: loc.search,
+                              prefixIcon: const Icon(
+                                Icons.search_rounded,
+                                color: LuminaColors.textSecondary,
+                              ),
+                              suffixIcon: _searchController.text.isNotEmpty
+                                  ? IconButton(
+                                      icon: const Icon(
+                                        Icons.clear_rounded,
+                                        size: 18,
+                                      ),
+                                      onPressed: () {
+                                        _searchController.clear();
+                                        cubit.changeSearchQuery('');
+                                      },
+                                    )
+                                  : null,
+                              filled: true,
+                              fillColor: LuminaColors.surface,
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 12,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                       const SliverToBoxAdapter(child: SizedBox(height: 8)),
-                    if (isTable)
+                      const SliverToBoxAdapter(child: DashboardFilterRow()),
+                      const SliverToBoxAdapter(child: SizedBox(height: 8)),
+                      GroupedTransactionsList(
+                        records: historyState.filteredRecords
+                            .map(HistoryExpenseModel.fromEntity)
+                            .toList(),
+                        categories: categories,
+                        currencySymbol: currencySymbol,
+                      ),
+                    ] else if (viewMode == HistoryViewMode.calendar) ...[
+                      SliverToBoxAdapter(
+                        child: MonthlyCalendarWidget(
+                          monthRecords: historyState.allRecords
+                              .map(HistoryExpenseModel.fromEntity)
+                              .where(
+                                (r) =>
+                                    r.date.month ==
+                                        historyState.selectedMonth &&
+                                    r.date.year == historyState.selectedYear,
+                              )
+                              .toList(),
+                          categories: categories,
+                          month: historyState.selectedMonth,
+                          year: historyState.selectedYear,
+                          currencySymbol: currencySymbol,
+                          onDeleteTransaction: (transaction) {
+                            cubit.removeRecord(transaction.id);
+                          },
+                          onEditTransaction: (transaction) {
+                            context.pushNamed(
+                              'add-transaction',
+                              extra: {
+                                'name': transaction.productName,
+                                'price': transaction.price,
+                                'id': transaction.id,
+                                'categoryId': transaction.categoryId,
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ] else if (viewMode == HistoryViewMode.table) ...[
                       SliverToBoxAdapter(
                         child: MonthlyMatrixWidget(
                           monthRecords: historyState.allRecords
@@ -111,15 +216,8 @@ class HistoryScreen extends StatelessWidget {
                             );
                           },
                         ),
-                      )
-                    else
-                      GroupedTransactionsList(
-                        records: historyState.filteredRecords
-                            .map(HistoryExpenseModel.fromEntity)
-                            .toList(),
-                        categories: categories,
-                        currencySymbol: currencySymbol,
                       ),
+                    ],
                     SliverToBoxAdapter(child: SizedBox(height: bottomGap)),
                   ],
                 );

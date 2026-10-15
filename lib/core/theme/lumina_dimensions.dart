@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
 
-class LuminaDimensions {
+abstract final class LuminaDimensions {
   static const double radiusSmall = 10.0;
   static const double radiusMedium = 16.0;
   static const double radiusLarge = 28.0;
 
-  static final BorderRadius borderRadiusSmall = BorderRadius.circular(
-    radiusSmall,
-  );
-  static final BorderRadius borderRadiusMedium = BorderRadius.circular(
-    radiusMedium,
-  );
-  static final BorderRadius borderRadiusLarge = BorderRadius.circular(
-    radiusLarge,
-  );
+  // const: не создаются заново и годятся для const-виджетов.
+  static const BorderRadius borderRadiusSmall =
+      BorderRadius.all(Radius.circular(radiusSmall));
+  static const BorderRadius borderRadiusMedium =
+      BorderRadius.all(Radius.circular(radiusMedium));
+  static const BorderRadius borderRadiusLarge =
+      BorderRadius.all(Radius.circular(radiusLarge));
 
   static const double paddingS = 8.0;
   static const double paddingM = 16.0;

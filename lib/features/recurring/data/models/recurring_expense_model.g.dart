@@ -26,13 +26,14 @@ class RecurringExpenseModelAdapter extends TypeAdapter<RecurringExpenseModel> {
       typeName: fields[6] as String,
       lastProcessedMonth: fields[7] as int,
       lastProcessedYear: fields[8] as int,
+      accountId: fields[9] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, RecurringExpenseModel obj) {
     writer
-      ..writeByte(9)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -50,7 +51,9 @@ class RecurringExpenseModelAdapter extends TypeAdapter<RecurringExpenseModel> {
       ..writeByte(7)
       ..write(obj.lastProcessedMonth)
       ..writeByte(8)
-      ..write(obj.lastProcessedYear);
+      ..write(obj.lastProcessedYear)
+      ..writeByte(9)
+      ..write(obj.accountId);
   }
 
   @override
