@@ -264,5 +264,7 @@
 "recurringMonthlyExpenses": "Monthly expenses: {amount}",
 "@recurringMonthlyExpenses": { "placeholders": { "amount": { "type": "String" } } },
 "recurringMonthlyIncome": "Monthly income: {amount}",
-"@recurringMonthlyIncome": { "placeholders": { "amount": { "type": "String" } } }
+"@recurringMonthlyIncome": { "placeholders": { "amount": { "type": "String" } } },
+"showBalance": "Show balance",
+"hideBalance": "Hide balance"
 }

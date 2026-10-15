@@ -641,4 +641,10 @@ class AppLocalizationsUk extends AppLocalizations {
   String recurringMonthlyIncome(String amount) {
     return 'Доходи на місяць: $amount';
   }
+
+  @override
+  String get showBalance => 'Показати баланс';
+
+  @override
+  String get hideBalance => 'Приховати баланс';
 }

@@ -262,5 +262,7 @@
 "recurringDeleted": "Регулярный платёж удалён",
 "recurringShortMonthNote": "В коротких месяцах списывается в последний день",
 "recurringMonthlyExpenses": "Расходы в месяц: {amount}",
-"recurringMonthlyIncome": "Доходы в месяц: {amount}"
+"recurringMonthlyIncome": "Доходы в месяц: {amount}",
+"showBalance": "Показать баланс",
+"hideBalance": "Скрыть баланс"
 }

@@ -1281,6 +1281,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Monthly income: {amount}'**
   String recurringMonthlyIncome(String amount);
+
+  /// No description provided for @showBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Show balance'**
+  String get showBalance;
+
+  /// No description provided for @hideBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide balance'**
+  String get hideBalance;
 }
 
 class _AppLocalizationsDelegate

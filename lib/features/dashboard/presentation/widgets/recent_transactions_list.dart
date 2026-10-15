@@ -1,102 +1,109 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:lumina/core/theme/lumina_colors.dart';
 import 'package:lumina/core/theme/lumina_theme.dart';
-import 'package:lumina/features/transactions/presentation/widgets/transaction_tile.dart';
 import 'package:lumina/features/categories/data/models/custom_category_model.dart';
-import 'package:lumina/features/transactions/data/models/history_expense_model.dart';
 import 'package:lumina/features/categories/presentation/cubits/categories_cubit.dart';
 import 'package:lumina/features/categories/presentation/cubits/categories_state.dart';
-import 'package:lumina/features/transactions/presentation/cubits/history_state.dart';
-import 'package:lumina/l10n/app_localizations.dart';
 import 'package:lumina/features/settings/presentation/cubits/currency_cubit.dart';
+import 'package:lumina/features/transactions/data/models/history_expense_model.dart';
+import 'package:lumina/features/transactions/presentation/cubits/history_cubit.dart';
+import 'package:lumina/features/transactions/presentation/cubits/history_state.dart';
+import 'package:lumina/features/transactions/presentation/widgets/transaction_tile.dart';
+import 'package:lumina/l10n/app_localizations.dart';
 
+/// Сливер с последними операциями. Записи кубит уже отсортировал по дате.
 class RecentTransactionsList extends StatelessWidget {
-  const RecentTransactionsList({
-    super.key,
-    required this.state,
-    this.limit = 5,
-  });
+  const RecentTransactionsList({super.key, this.limit = 5});
 
-  final HistoryState state;
   final int limit;
 
-  CustomCategory? _findCategory(List<CustomCategory> categories, String key) {
-    final needle = key.trim().toLowerCase();
-    if (needle.isEmpty) return null;
-    for (final c in categories) {
-      if (c.id == key || c.id.toLowerCase() == needle) return c;
-      if (c.name.toLowerCase() == needle) return c;
-    }
-    const aliases = {
-      'food': 'cat_food',
-      'food & drinks': 'cat_food',
-      'transport': 'cat_transport',
-      'shopping': 'cat_shopping',
-      'entertainment': 'cat_entertainment',
-      'housing': 'cat_housing',
-      'home': 'cat_housing',
-      'salary': 'cat_salary',
-      'income': 'cat_salary',
+  @override
+  Widget build(BuildContext context) {
+    final catState = context.watch<CategoriesCubit>().state;
+    final symbol = context.select((CurrencyCubit c) => c.state.symbol);
+    // Старые названия категорий переводит в id миграция в CategoriesCubit,
+    // поэтому здесь достаточно поиска по id.
+    final byId = <String, CustomCategory>{
+      if (catState is CategoriesLoaded)
+        for (final c in catState.categories) c.id: c,
     };
-    final id = aliases[needle];
-    if (id == null) return null;
-    for (final c in categories) {
-      if (c.id == id) return c;
-    }
-    return null;
+
+    return BlocBuilder<HistoryCubit, HistoryState>(
+      buildWhen: (p, n) =>
+          !listEquals(p.filteredRecords, n.filteredRecords) ||
+          p.allRecords.isEmpty != n.allRecords.isEmpty,
+      builder: (context, state) {
+        final items = state.filteredRecords.take(limit).toList();
+
+        if (items.isEmpty) {
+          return SliverToBoxAdapter(
+            child: _EmptyRecent(firstRun: state.allRecords.isEmpty),
+          );
+        }
+
+        return SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          sliver: SliverList.separated(
+            itemCount: items.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            itemBuilder: (context, index) {
+              final entity = items[index];
+              return TransactionTile(
+                key: ValueKey(entity.id),
+                record: HistoryExpenseModel.fromEntity(entity),
+                category: byId[entity.category],
+                currencySymbol: symbol,
+              );
+            },
+          ),
+        );
+      },
+    );
   }
+}
+
+class _EmptyRecent extends StatelessWidget {
+  const _EmptyRecent({required this.firstRun});
+
+  /// true: операций нет вообще, предлагаем добавить первую.
+  final bool firstRun;
 
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
-    final records = [...state.filteredRecords]
-      ..sort((a, b) => b.date.compareTo(a.date));
-    final items = records.take(limit).toList();
 
-    if (items.isEmpty) {
-      return SliverToBoxAdapter(
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: LuminaTheme.premiumShadow,
-          ),
-          child: Center(
-            child: Text(
-              loc.noTransactionsYet,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: LuminaTheme.subTitleColor,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
+      decoration: BoxDecoration(
+        color: LuminaColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: LuminaTheme.premiumShadow,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            firstRun ? loc.noTransactionsYet : loc.noExpensesForPeriod,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: LuminaColors.textSecondary,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
             ),
           ),
-        ),
-      );
-    }
-
-    final catState = context.watch<CategoriesCubit>().state;
-    final categories = catState is CategoriesLoaded
-        ? catState.categories
-        : const <CustomCategory>[];
-    final currencySymbol = context.watch<CurrencyCubit>().state.symbol;
-
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      sliver: SliverList.separated(
-        itemCount: items.length,
-        separatorBuilder: (context, index) => const SizedBox(height: 8),
-        itemBuilder: (context, index) {
-          final entity = items[index];
-          return TransactionTile(
-            record: HistoryExpenseModel.fromEntity(entity),
-            category: _findCategory(categories, entity.category),
-            currencySymbol: currencySymbol,
-          );
-        },
+          if (firstRun) ...[
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () => context.push('/add-transaction'),
+              icon: const Icon(Icons.add_rounded),
+              label: Text(loc.create),
+            ),
+          ],
+        ],
       ),
     );
   }
