@@ -262,5 +262,7 @@
 "recurringDeleted": "Регулярний платіж видалено",
 "recurringShortMonthNote": "У коротких місяцях списується в останній день",
 "recurringMonthlyExpenses": "Витрати на місяць: {amount}",
-"recurringMonthlyIncome": "Доходи на місяць: {amount}"
+"recurringMonthlyIncome": "Доходи на місяць: {amount}",
+"showBalance": "Показати баланс",
+"hideBalance": "Приховати баланс"
 }

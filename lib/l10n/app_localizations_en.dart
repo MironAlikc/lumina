@@ -643,4 +643,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String recurringMonthlyIncome(String amount) {
     return 'Monthly income: $amount';
   }
+
+  @override
+  String get showBalance => 'Show balance';
+
+  @override
+  String get hideBalance => 'Hide balance';
 }
