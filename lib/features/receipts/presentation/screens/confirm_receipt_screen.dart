@@ -4,56 +4,63 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:lumina/core/theme/lumina_colors.dart';
 import 'package:lumina/core/theme/lumina_dimensions.dart';
+import 'package:lumina/features/accounts/presentation/cubits/account_cubit.dart';
 import 'package:lumina/features/categories/data/models/custom_category_model.dart';
 import 'package:lumina/features/categories/presentation/cubits/categories_cubit.dart';
 import 'package:lumina/features/categories/presentation/cubits/categories_state.dart';
+import 'package:lumina/features/receipts/data/services/receipt_parser.dart';
 import 'package:lumina/features/receipts/domain/entities/scanned_receipt.dart';
+import 'package:lumina/features/receipts/presentation/screens/confirm_receipt_items_screen.dart';
+import 'package:lumina/features/receipts/presentation/widgets/receipt_account_picker.dart';
 import 'package:lumina/features/settings/presentation/cubits/currency_cubit.dart';
 import 'package:lumina/features/transactions/domain/entities/history_expense.dart';
 import 'package:lumina/features/transactions/presentation/cubits/history_cubit.dart';
 import 'package:lumina/l10n/app_localizations.dart';
+import 'package:uuid/uuid.dart';
 
-class ConfirmReceiptScreen extends StatefulWidget {
+/// Выбирает экран подтверждения: список позиций или одна операция.
+class ConfirmReceiptScreen extends StatelessWidget {
   const ConfirmReceiptScreen({super.key, required this.receipt});
 
   final ScannedReceipt receipt;
 
   @override
-  State<ConfirmReceiptScreen> createState() => _ConfirmReceiptScreenState();
+  Widget build(BuildContext context) {
+    return receipt.lines.length >= 2
+        ? ConfirmReceiptItemsScreen(receipt: receipt)
+        : _SingleReceiptView(receipt: receipt);
+  }
 }
 
-class _ConfirmReceiptScreenState extends State<ConfirmReceiptScreen> {
+class _SingleReceiptView extends StatefulWidget {
+  const _SingleReceiptView({required this.receipt});
+
+  final ScannedReceipt receipt;
+
+  @override
+  State<_SingleReceiptView> createState() => _SingleReceiptViewState();
+}
+
+class _SingleReceiptViewState extends State<_SingleReceiptView> {
   late final TextEditingController _name;
   late final TextEditingController _amount;
   late DateTime _date;
-  CustomCategory? _category;
-  var _saving = false;
+  String? _categoryId;
+  String? _accountId;
+  bool _saving = false;
 
   @override
   void initState() {
     super.initState();
-    _name = TextEditingController(text: widget.receipt.merchant);
+    final receipt = widget.receipt;
+    _name = TextEditingController(text: receipt.merchant);
+    final value = receipt.amount;
     _amount = TextEditingController(
-      text: widget.receipt.amount > 0
-          ? widget.receipt.amount.toStringAsFixed(
-              widget.receipt.amount == widget.receipt.amount.roundToDouble()
-                  ? 0
-                  : 2,
-            )
+      text: value > 0
+          ? value.toStringAsFixed(value == value.roundToDouble() ? 0 : 2)
           : '',
     );
-    _date = widget.receipt.date;
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_category != null) return;
-    final state = context.read<CategoriesCubit>().state;
-    if (state is CategoriesLoaded) {
-      final expenses = state.categories.where((c) => c.type == 'expense');
-      _category = expenses.isNotEmpty ? expenses.first : null;
-    }
+    _date = receipt.date;
   }
 
   @override
@@ -63,27 +70,61 @@ class _ConfirmReceiptScreenState extends State<ConfirmReceiptScreen> {
     super.dispose();
   }
 
-  Future<void> _pickDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _date,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now().add(const Duration(days: 1)),
-    );
-    if (picked != null) setState(() => _date = picked);
+  /// Выбор пользователя, затем подсказка из чека, затем первая категория.
+  CustomCategory? _effectiveCategory(List<CustomCategory> expenses) {
+    if (expenses.isEmpty) return null;
+    final suggested = widget.receipt.lines.firstOrNull?.suggestedCategoryId;
+    for (final id in [_categoryId, suggested]) {
+      final found = expenses.where((c) => c.id == id).firstOrNull;
+      if (found != null) return found;
+    }
+    return expenses.first;
   }
 
-  Future<void> _save() async {
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final first = DateTime(2000);
+    final last = DateTime(now.year, now.month, now.day);
+
+    // initialDate вне диапазона роняет showDatePicker.
+    var initial = DateUtils.dateOnly(_date);
+    if (initial.isBefore(first)) initial = first;
+    if (initial.isAfter(last)) initial = last;
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: first,
+      lastDate: last,
+    );
+    if (picked == null || !mounted) return;
+    // Время из чека сохраняем: меняется только день.
+    setState(
+      () => _date = DateTime(
+        picked.year,
+        picked.month,
+        picked.day,
+        _date.hour,
+        _date.minute,
+      ),
+    );
+  }
+
+  Future<void> _save(CustomCategory? category, String? accountId) async {
+    if (_saving) return;
     final loc = AppLocalizations.of(context)!;
-    final amount =
-        double.tryParse(_amount.text.replaceAll(',', '.').trim()) ?? 0;
-    if (amount <= 0 || _category == null) {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final cubit = context.read<HistoryCubit>();
+
+    final amount = ReceiptParser.parseAmount(_amount.text) ?? 0;
+    if (amount <= 0 || category == null) {
       HapticFeedback.heavyImpact();
-      if (amount <= 0) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(loc.scanNothingFound)));
-      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(amount <= 0 ? loc.amountRequired : loc.chooseCategory),
+        ),
+      );
       return;
     }
 
@@ -91,22 +132,35 @@ class _ConfirmReceiptScreenState extends State<ConfirmReceiptScreen> {
     HapticFeedback.mediumImpact();
 
     final note = _name.text.trim();
-    final entity = HistoryExpense(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      date: _date,
-      productName: note.isNotEmpty ? note : _category!.localizedName(loc),
-      price: amount,
-      category: _category!.id,
-      type: _category!.type,
-      isSynced: false,
-    );
-
     try {
-      await context.read<HistoryCubit>().addRecord(entity);
-      if (mounted) Navigator.of(context).pop();
+      await cubit.addRecord(
+        HistoryExpense(
+          id: const Uuid().v4(),
+          date: _date,
+          productName: note.isNotEmpty ? note : category.localizedName(loc),
+          price: amount,
+          category: category.id,
+          type: category.type,
+          isSynced: false,
+          accountId: accountId,
+        ),
+      );
+      if (mounted) navigator.pop(true);
     } catch (_) {
-      if (mounted) setState(() => _saving = false);
+      if (!mounted) return;
+      setState(() => _saving = false);
+      messenger.showSnackBar(SnackBar(content: Text(loc.saveFailed)));
     }
+  }
+
+  InputDecoration _decoration(String label, {String? suffix}) {
+    return InputDecoration(
+      labelText: label,
+      suffixText: suffix,
+      filled: true,
+      fillColor: LuminaColors.surface,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+    );
   }
 
   @override
@@ -115,15 +169,24 @@ class _ConfirmReceiptScreenState extends State<ConfirmReceiptScreen> {
     final locale = Localizations.localeOf(context).toString();
     final symbol = context.watch<CurrencyCubit>().state.symbol;
     final catState = context.watch<CategoriesCubit>().state;
-    final categories = catState is CategoriesLoaded
-        ? catState.categories.where((c) => c.type == 'expense').toList()
+    final accounts = context.watch<AccountCubit>().state.accounts;
+
+    final expenses = catState is CategoriesLoaded
+        ? [
+            for (final c in catState.categories)
+              if (c.type == CustomCategory.typeExpense) c,
+          ]
         : const <CustomCategory>[];
+    final category = _effectiveCategory(expenses);
+    final accountId = ReceiptAccountPicker.resolve(accounts, _accountId);
 
     return Scaffold(
       backgroundColor: LuminaColors.background,
       appBar: AppBar(
         backgroundColor: LuminaColors.background,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
         title: Text(
           loc.scanReceiptTitle,
           style: const TextStyle(
@@ -138,15 +201,9 @@ class _ConfirmReceiptScreenState extends State<ConfirmReceiptScreen> {
         children: [
           TextField(
             controller: _name,
+            maxLength: 80,
             textCapitalization: TextCapitalization.sentences,
-            decoration: InputDecoration(
-              labelText: loc.merchantHint,
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
+            decoration: _decoration(loc.merchantHint).copyWith(counterText: ''),
           ),
           const SizedBox(height: 12),
           TextField(
@@ -155,22 +212,21 @@ class _ConfirmReceiptScreenState extends State<ConfirmReceiptScreen> {
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
             ],
-            decoration: InputDecoration(
-              labelText: loc.goalsDepositAmount(symbol),
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
+            decoration: _decoration(loc.amountLabel, suffix: symbol),
           ),
           const SizedBox(height: 12),
+          ReceiptAccountPicker(
+            accounts: accounts,
+            value: accountId,
+            onChanged: (id) => setState(() => _accountId = id),
+          ),
+          if (accounts.isNotEmpty) const SizedBox(height: 12),
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 12),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
-            tileColor: Colors.white,
+            tileColor: LuminaColors.surface,
             leading: const Icon(
               Icons.calendar_today_rounded,
               color: LuminaColors.primary,
@@ -197,66 +253,47 @@ class _ConfirmReceiptScreenState extends State<ConfirmReceiptScreen> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              for (final cat in categories)
+              for (final cat in expenses)
                 ChoiceChip(
-                  selected: cat.id == _category?.id,
+                  selected: cat.id == category?.id,
                   label: Text(cat.localizedName(loc)),
                   avatar: Icon(
                     cat.icon,
                     size: 16,
-                    color: cat.id == _category?.id ? Colors.white : cat.color,
+                    color: cat.id == category?.id ? Colors.white : cat.color,
                   ),
+                  showCheckmark: false,
                   selectedColor: LuminaColors.primary,
                   labelStyle: TextStyle(
-                    color: cat.id == _category?.id
+                    color: cat.id == category?.id
                         ? Colors.white
                         : LuminaColors.textMain,
                   ),
-                  onSelected: (_) => setState(() => _category = cat),
+                  onSelected: (_) => setState(() => _categoryId = cat.id),
                 ),
             ],
           ),
-          if (widget.receipt.lines.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            Text(
-              loc.receiptLines,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                color: LuminaColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            for (final line in widget.receipt.lines)
-              ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                title: Text(line.name),
-                trailing: Text(
-                  '${line.amount.toStringAsFixed(2)} $symbol',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ),
-          ],
           const SizedBox(height: 28),
           SizedBox(
-            height: 52,
+            height: LuminaDimensions.buttonHeight,
             child: ElevatedButton(
-              onPressed: _saving ? null : _save,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: LuminaColors.primary,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: LuminaDimensions.borderRadiusMedium,
-                ),
-              ),
-              child: Text(
-                loc.confirmReceipt,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
+              onPressed: _saving ? null : () => _save(category, accountId),
+              child: _saving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(
+                      loc.confirmReceipt,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
             ),
           ),
         ],

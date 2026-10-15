@@ -2,454 +2,217 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:intl/intl.dart';
 import 'package:lumina/core/theme/lumina_colors.dart';
 import 'package:lumina/core/theme/lumina_dimensions.dart';
-import 'package:lumina/core/widgets/lumina_form_dialog.dart';
+import 'package:lumina/core/theme/lumina_theme.dart';
+import 'package:lumina/core/utils/money.dart';
+import 'package:lumina/core/widgets/lumina_dialog.dart';
+import 'package:lumina/features/accounts/presentation/cubits/account_cubit.dart';
 import 'package:lumina/features/goals/data/models/goal_expense_model.dart';
 import 'package:lumina/features/goals/data/services/goal_service.dart';
+import 'package:lumina/features/receipts/presentation/widgets/receipt_account_picker.dart';
 import 'package:lumina/features/settings/presentation/cubits/currency_cubit.dart';
+import 'package:lumina/features/transactions/domain/entities/history_expense.dart';
 import 'package:lumina/features/transactions/presentation/cubits/history_cubit.dart';
 import 'package:lumina/l10n/app_localizations.dart';
+import 'package:uuid/uuid.dart';
 
-class GoalsScreen extends StatefulWidget {
+const _icons = ['🎯', '✈️', '💻', '🚗', '🏠', '🎁'];
+
+typedef _NewGoal = ({String title, double target, String icon});
+typedef _DepositInput = ({double amount, String? accountId});
+
+bool _isDone(GoalExpenseModel g) => g.currentAmount >= g.targetAmount;
+
+class GoalsScreen extends StatelessWidget {
   const GoalsScreen({super.key});
 
-  @override
-  State<GoalsScreen> createState() => _GoalsScreenState();
-}
+  Future<void> _create(BuildContext context, String symbol) async {
+    HapticFeedback.lightImpact();
+    final messenger = ScaffoldMessenger.of(context);
+    final loc = AppLocalizations.of(context)!;
 
-class _GoalsScreenState extends State<GoalsScreen> {
-  Box<GoalExpenseModel>? _box;
+    final input = await showLuminaDialog<_NewGoal>(
+      context: context,
+      child: _CreateGoalDialog(symbol: symbol),
+    );
+    if (input == null) return;
 
-  static const _icons = ['🎯', '✈️', '💻', '🚗', '🏠', '🎁'];
-
-  @override
-  void initState() {
-    super.initState();
-    _openBox();
+    try {
+      await GoalService.addGoal(
+        title: input.title,
+        targetAmount: input.target,
+        icon: input.icon,
+        colorValue: LuminaColors.primary.toARGB32(),
+      );
+    } catch (_) {
+      messenger.showSnackBar(SnackBar(content: Text(loc.saveFailed)));
+    }
   }
 
-  Future<void> _openBox() async {
-    final box = Hive.isBoxOpen(GoalService.boxName)
-        ? Hive.box<GoalExpenseModel>(GoalService.boxName)
-        : await Hive.openBox<GoalExpenseModel>(GoalService.boxName);
-    if (mounted) setState(() => _box = box);
+  Future<void> _deposit(
+    BuildContext context,
+    GoalExpenseModel goal,
+    String symbol,
+  ) async {
+    HapticFeedback.lightImpact();
+    final messenger = ScaffoldMessenger.of(context);
+    final loc = AppLocalizations.of(context)!;
+    final history = context.read<HistoryCubit>();
+
+    final input = await showLuminaDialog<_DepositInput>(
+      context: context,
+      child: _DepositDialog(goal: goal, symbol: symbol),
+    );
+    if (input == null) return;
+
+    try {
+      // Расход со счёта записывается через HistoryCubit: баланс счёта
+      // обновляется. Если запись не удалась, цель откатывается сервисом.
+      await GoalService.depositToGoal(
+        goal,
+        input.amount,
+        recordExpense: (applied) => history.addRecord(
+          HistoryExpense(
+            id: const Uuid().v4(),
+            date: DateTime.now(),
+            productName: goal.title,
+            price: applied,
+            category: GoalService.goalsCategoryId,
+            type: 'expense',
+            isSynced: false,
+            accountId: input.accountId,
+          ),
+        ),
+      );
+    } catch (_) {
+      messenger.showSnackBar(SnackBar(content: Text(loc.saveFailed)));
+    }
   }
 
-  NumberFormat _whole(BuildContext context) {
-    return NumberFormat.decimalPattern(
-      Localizations.localeOf(context).toString(),
-    )..maximumFractionDigits = 0;
-  }
+  Future<void> _delete(BuildContext context, GoalExpenseModel goal) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final loc = AppLocalizations.of(context)!;
 
-  Future<void> _reloadHistory() async {
-    if (!mounted) return;
-    await context.read<HistoryCubit>().loadRecords();
-  }
+    final confirmed = await showLuminaDialog<bool>(
+      context: context,
+      child: _DeleteGoalDialog(title: goal.title),
+    );
+    if (confirmed != true) return;
 
-  void _close(BuildContext ctx) {
-    final nav = Navigator.of(ctx, rootNavigator: true);
-    if (nav.canPop()) nav.pop();
+    HapticFeedback.mediumImpact();
+    try {
+      await GoalService.deleteGoal(goal);
+    } catch (_) {
+      messenger.showSnackBar(SnackBar(content: Text(loc.saveFailed)));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
     final symbol = context.watch<CurrencyCubit>().state.symbol;
-    final box = _box;
-    final whole = _whole(context);
 
     return Scaffold(
       backgroundColor: LuminaColors.background,
-      appBar: AppBar(
-        title: Text(
-          loc.goalsTitle,
-          style: const TextStyle(
-            color: LuminaColors.textMain,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: LuminaColors.textMain),
+      appBar: AppBar(title: Text(loc.goalsTitle)),
+      // Бокс открывает HiveClient при старте.
+      body: ValueListenableBuilder<Box<GoalExpenseModel>>(
+        valueListenable:
+            Hive.box<GoalExpenseModel>(GoalService.boxName).listenable(),
+        builder: (context, box, _) {
+          // Порядок ключей в Hive случайный (UUID): сортируем явно.
+          final goals = box.values.toList()
+            ..sort((a, b) {
+              final byDone =
+                  _isDone(a) == _isDone(b) ? 0 : (_isDone(a) ? 1 : -1);
+              return byDone != 0
+                  ? byDone
+                  : a.title.toLowerCase().compareTo(b.title.toLowerCase());
+            });
+
+          if (goals.isEmpty) {
+            return _EmptyState(onCreate: () => _create(context, symbol));
+          }
+
+          return ListView.builder(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 110),
+            itemCount: goals.length,
+            itemBuilder: (context, index) {
+              final goal = goals[index];
+              return _GoalCard(
+                key: ValueKey(goal.id),
+                goal: goal,
+                symbol: symbol,
+                onDeposit: () => _deposit(context, goal, symbol),
+                onDelete: () => _delete(context, goal),
+              );
+            },
+          );
+        },
       ),
-      body: box == null
-          ? const Center(child: CircularProgressIndicator())
-          : ValueListenableBuilder(
-              valueListenable: box.listenable(),
-              builder: (context, Box<GoalExpenseModel> goalsBox, _) {
-                final goals = goalsBox.values.toList();
-
-                if (goals.isEmpty) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 32),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text('🎯', style: TextStyle(fontSize: 54)),
-                          const SizedBox(height: 16),
-                          Text(
-                            loc.goalsEmpty,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: LuminaColors.textSecondary,
-                              fontSize: 15,
-                              height: 1.4,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: LuminaColors.primary,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 14,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                            icon: const Icon(Icons.add_rounded),
-                            label: Text(
-                              loc.goalsNew,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            onPressed: () {
-                              HapticFeedback.lightImpact();
-                              _showAddGoalDialog(symbol);
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
-                  itemCount: goals.length,
-                  itemBuilder: (context, index) {
-                    final goal = goals[index];
-                    final progress = goal.targetAmount <= 0
-                        ? 0.0
-                        : (goal.currentAmount / goal.targetAmount)
-                              .clamp(0.0, 1.0)
-                              .toDouble();
-                    return _GoalCard(
-                      goal: goal,
-                      progress: progress,
-                      symbol: symbol,
-                      loc: loc,
-                      whole: whole,
-                      onDeposit: () => _showDepositDialog(goal, loc, symbol),
-                      onDelete: () => _confirmDelete(goal, loc),
-                    );
-                  },
-                );
-              },
-            ),
-      floatingActionButton: box != null && box.isNotEmpty
-          ? Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: FloatingActionButton.extended(
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: ValueListenableBuilder<Box<GoalExpenseModel>>(
+        valueListenable:
+            Hive.box<GoalExpenseModel>(GoalService.boxName).listenable(),
+        builder: (context, box, _) => box.isEmpty
+            ? const SizedBox.shrink()
+            : FloatingActionButton.extended(
                 backgroundColor: LuminaColors.primary,
-                icon: const Icon(Icons.add_rounded, color: Colors.white),
+                foregroundColor: Colors.white,
+                onPressed: () => _create(context, symbol),
+                icon: const Icon(Icons.add_rounded),
                 label: Text(
                   loc.goalsNew,
-                  style: const TextStyle(color: Colors.white),
-                ),
-                onPressed: () {
-                  HapticFeedback.lightImpact();
-                  _showAddGoalDialog(symbol);
-                },
-              ),
-            )
-          : null,
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-    );
-  }
-
-  Future<void> _confirmDelete(
-    GoalExpenseModel goal,
-    AppLocalizations loc,
-  ) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      useRootNavigator: true,
-      barrierColor: Colors.black.withValues(alpha: 0.45),
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text(loc.goalsDeleteTitle),
-        content: Text(loc.goalsDeleteConfirm(goal.title)),
-        actions: [
-          TextButton(
-            onPressed: () => _close(ctx),
-            child: Text(loc.goalsCancel),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(true),
-            child: Text(loc.goalsDelete),
-          ),
-        ],
-      ),
-    );
-    if (ok == true) {
-      HapticFeedback.mediumImpact();
-      await GoalService.deleteGoal(goal);
-    }
-  }
-
-  void _showDepositDialog(
-    GoalExpenseModel goal,
-    AppLocalizations loc,
-    String symbol,
-  ) {
-    final controller = TextEditingController();
-    showDialog<void>(
-      context: context,
-      useRootNavigator: true,
-      barrierColor: Colors.black.withValues(alpha: 0.45),
-      builder: (ctx) => LuminaFormDialog(
-        title: loc.goalsDepositTitle(goal.title),
-        onClose: () => _close(ctx),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: controller,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-              ],
-              decoration: InputDecoration(
-                labelText: loc.goalsDepositAmount(symbol),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: TextButton(
-                    onPressed: () => _close(ctx),
-                    child: Text(loc.goalsCancel),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      final amount =
-                          double.tryParse(
-                            controller.text.replaceAll(',', '.'),
-                          ) ??
-                          0;
-                      if (amount <= 0) {
-                        HapticFeedback.heavyImpact();
-                        return;
-                      }
-                      final applied = await GoalService.depositToGoal(
-                        goal,
-                        amount,
-                      );
-                      if (ctx.mounted) _close(ctx);
-                      if (applied > 0) await _reloadHistory();
-                    },
-                    child: Text(loc.goalsDeposit),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    ).whenComplete(controller.dispose);
-  }
-
-  void _showAddGoalDialog(String symbol) {
-    showDialog<void>(
-      context: context,
-      useRootNavigator: true,
-      barrierDismissible: true,
-      barrierColor: Colors.black.withValues(alpha: 0.45),
-      builder: (ctx) => _CreateGoalDialog(
-        icons: _icons,
-        symbol: symbol,
-        onClose: () => _close(ctx),
       ),
     );
   }
 }
 
-class _CreateGoalDialog extends StatefulWidget {
-  const _CreateGoalDialog({
-    required this.icons,
-    required this.symbol,
-    required this.onClose,
-  });
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.onCreate});
 
-  final List<String> icons;
-  final String symbol;
-  final VoidCallback onClose;
-
-  @override
-  State<_CreateGoalDialog> createState() => _CreateGoalDialogState();
-}
-
-class _CreateGoalDialogState extends State<_CreateGoalDialog> {
-  final _titleController = TextEditingController();
-  final _targetController = TextEditingController();
-  late String _selectedIcon;
-  var _saving = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedIcon = widget.icons.first;
-  }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _targetController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _save(AppLocalizations loc) async {
-    final title = _titleController.text.trim();
-    final target =
-        double.tryParse(_targetController.text.replaceAll(',', '.')) ?? 0;
-    if (title.isEmpty || target <= 0) {
-      HapticFeedback.heavyImpact();
-      return;
-    }
-    setState(() => _saving = true);
-    try {
-      await GoalService.addGoal(
-        title: title,
-        targetAmount: target,
-        icon: _selectedIcon,
-        colorValue: 0xFF4CAF50,
-      );
-      if (mounted) widget.onClose();
-    } catch (_) {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
+  final VoidCallback onCreate;
 
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
 
-    return LuminaFormDialog(
-      title: loc.goalsCreateTitle,
-      onClose: widget.onClose,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextField(
-            controller: _titleController,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: InputDecoration(
-              labelText: loc.goalsNameHint,
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('🎯', style: TextStyle(fontSize: 54)),
+            const SizedBox(height: 16),
+            Text(
+              loc.goalsEmpty,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: LuminaColors.textSecondary,
+                fontSize: 15,
+                height: 1.4,
               ),
             ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _targetController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-            ],
-            decoration: InputDecoration(
-              labelText: loc.goalsAmountHint(widget.symbol),
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            loc.goalsIconLabel,
-            style: const TextStyle(color: LuminaColors.textSecondary),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final icon in widget.icons)
-                GestureDetector(
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    setState(() => _selectedIcon = icon);
-                  },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    width: 48,
-                    height: 48,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: _selectedIcon == icon
-                          ? LuminaColors.primary.withValues(alpha: 0.2)
-                          : LuminaColors.inputFill,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: _selectedIcon == icon
-                            ? LuminaColors.primary
-                            : Colors.transparent,
-                      ),
-                    ),
-                    child: Text(icon, style: const TextStyle(fontSize: 22)),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: ElevatedButton(
-              onPressed: _saving ? null : () => _save(loc),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: LuminaColors.primary,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              child: Text(
-                loc.goalsCreate,
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: onCreate,
+              icon: const Icon(Icons.add_rounded),
+              label: Text(
+                loc.goalsNew,
                 style: const TextStyle(
-                  fontWeight: FontWeight.bold,
                   fontSize: 16,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -457,26 +220,30 @@ class _CreateGoalDialogState extends State<_CreateGoalDialog> {
 
 class _GoalCard extends StatelessWidget {
   const _GoalCard({
+    super.key,
     required this.goal,
-    required this.progress,
     required this.symbol,
-    required this.loc,
-    required this.whole,
     required this.onDeposit,
     required this.onDelete,
   });
 
   final GoalExpenseModel goal;
-  final double progress;
   final String symbol;
-  final AppLocalizations loc;
-  final NumberFormat whole;
   final VoidCallback onDeposit;
   final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
-    final done = progress >= 1;
+    final loc = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).toString();
+
+    final done = _isDone(goal);
+    final progress = goal.targetAmount <= 0
+        ? 0.0
+        : (goal.currentAmount / goal.targetAmount).clamp(0.0, 1.0);
+    final color = done ? LuminaColors.success : LuminaColors.primary;
+    // floor: 99,6% не должно выглядеть как «100%».
+    final percent = done ? 100 : (progress * 100).floor();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -484,13 +251,7 @@ class _GoalCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: LuminaColors.surface,
         borderRadius: LuminaDimensions.borderRadiusLarge,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: LuminaTheme.premiumShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -511,24 +272,38 @@ class _GoalCard extends StatelessWidget {
                   ),
                 ),
               ),
+              if (done)
+                const Padding(
+                  padding: EdgeInsets.only(right: 6),
+                  child: Icon(
+                    Icons.check_circle_rounded,
+                    size: 18,
+                    color: LuminaColors.success,
+                  ),
+                ),
               Text(
-                '${(progress * 100).toStringAsFixed(0)}%',
+                '$percent%',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
-                  color: done ? LuminaColors.success : LuminaColors.primary,
+                  color: color,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: progress,
-              backgroundColor: LuminaColors.inputFill,
-              color: done ? LuminaColors.success : LuminaColors.primary,
-              minHeight: 8,
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: progress),
+            duration: const Duration(milliseconds: 450),
+            curve: Curves.easeOutCubic,
+            builder: (context, value, _) => ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: value,
+                backgroundColor: LuminaColors.inputFill,
+                color: color,
+                minHeight: 8,
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -537,7 +312,11 @@ class _GoalCard extends StatelessWidget {
             children: [
               Flexible(
                 child: Text(
-                  loc.goalsSaved('${whole.format(goal.currentAmount)} $symbol'),
+                  loc.goalsSaved(
+                    Money.format(goal.currentAmount, locale, symbol: symbol),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: LuminaColors.textSecondary,
                     fontSize: 13,
@@ -546,7 +325,9 @@ class _GoalCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                loc.goalsTarget('${whole.format(goal.targetAmount)} $symbol'),
+                loc.goalsTarget(
+                  Money.format(goal.targetAmount, locale, symbol: symbol),
+                ),
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   color: LuminaColors.textMain,
@@ -571,6 +352,339 @@ class _GoalCard extends StatelessWidget {
                 icon: const Icon(
                   Icons.delete_outline_rounded,
                   color: LuminaColors.error,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ----------------------------------------------------------------- dialogs
+
+class _CreateGoalDialog extends StatefulWidget {
+  const _CreateGoalDialog({required this.symbol});
+
+  final String symbol;
+
+  @override
+  State<_CreateGoalDialog> createState() => _CreateGoalDialogState();
+}
+
+class _CreateGoalDialogState extends State<_CreateGoalDialog> {
+  final _title = TextEditingController();
+  final _target = TextEditingController();
+  String _icon = _icons.first;
+  bool _titleError = false;
+  bool _targetError = false;
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _target.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final title = _title.text.trim();
+    final target = Money.parse(_target.text);
+
+    setState(() {
+      _titleError = title.isEmpty;
+      _targetError = target == null || target <= 0;
+    });
+    if (_titleError || _targetError) {
+      HapticFeedback.heavyImpact();
+      return;
+    }
+    Navigator.of(context).pop<_NewGoal>(
+      (title: title, target: target!, icon: _icon),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            loc.goalsCreateTitle,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: LuminaColors.textMain,
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _title,
+            maxLength: 40,
+            textCapitalization: TextCapitalization.sentences,
+            textInputAction: TextInputAction.next,
+            onChanged: (_) {
+              if (_titleError) setState(() => _titleError = false);
+            },
+            decoration: InputDecoration(
+              labelText: loc.goalsNameHint,
+              counterText: '',
+              errorText: _titleError ? loc.accountNameRequired : null,
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _target,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9.,\s]')),
+            ],
+            onChanged: (_) {
+              if (_targetError) setState(() => _targetError = false);
+            },
+            onSubmitted: (_) => _submit(),
+            decoration: InputDecoration(
+              labelText: loc.goalsAmountHint(widget.symbol),
+              errorText: _targetError ? loc.amountRequired : null,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            loc.goalsIconLabel,
+            style: const TextStyle(color: LuminaColors.textSecondary),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final icon in _icons)
+                _IconChoice(
+                  icon: icon,
+                  selected: _icon == icon,
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    setState(() => _icon = icon);
+                  },
+                ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: LuminaDimensions.buttonHeight,
+            child: ElevatedButton(
+              onPressed: _submit,
+              child: Text(
+                loc.goalsCreate,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _IconChoice extends StatelessWidget {
+  const _IconChoice({
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: icon,
+      child: Material(
+        color: selected
+            ? LuminaColors.primary.withValues(alpha: 0.2)
+            : LuminaColors.inputFill,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: selected ? LuminaColors.primary : Colors.transparent,
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: SizedBox(
+            width: 48,
+            height: 48,
+            child: Center(
+              child: Text(icon, style: const TextStyle(fontSize: 22)),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DepositDialog extends StatefulWidget {
+  const _DepositDialog({required this.goal, required this.symbol});
+
+  final GoalExpenseModel goal;
+  final String symbol;
+
+  @override
+  State<_DepositDialog> createState() => _DepositDialogState();
+}
+
+class _DepositDialogState extends State<_DepositDialog> {
+  final _amount = TextEditingController();
+  String? _accountId;
+  bool _error = false;
+
+  @override
+  void dispose() {
+    _amount.dispose();
+    super.dispose();
+  }
+
+  void _submit(String? accountId) {
+    final value = Money.parse(_amount.text);
+    if (value == null || value <= 0) {
+      HapticFeedback.heavyImpact();
+      setState(() => _error = true);
+      return;
+    }
+    Navigator.of(context).pop<_DepositInput>(
+      (amount: value, accountId: accountId),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    final accounts = context.watch<AccountCubit>().state.accounts;
+    final accountId = ReceiptAccountPicker.resolve(accounts, _accountId);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            loc.goalsDepositTitle(widget.goal.title),
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: LuminaColors.textMain,
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _amount,
+            autofocus: true,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9.,\s]')),
+            ],
+            onChanged: (_) {
+              if (_error) setState(() => _error = false);
+            },
+            onSubmitted: (_) => _submit(accountId),
+            decoration: InputDecoration(
+              labelText: loc.goalsDepositAmount(widget.symbol),
+              errorText: _error ? loc.amountRequired : null,
+            ),
+          ),
+          if (accounts.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            ReceiptAccountPicker(
+              accounts: accounts,
+              value: accountId,
+              onChanged: (id) => setState(() => _accountId = id),
+            ),
+          ],
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(loc.goalsCancel),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => _submit(accountId),
+                  child: Text(loc.goalsDeposit),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DeleteGoalDialog extends StatelessWidget {
+  const _DeleteGoalDialog({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            loc.goalsDeleteTitle,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: LuminaColors.textMain,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            loc.goalsDeleteConfirm(title),
+            style: const TextStyle(color: LuminaColors.textSecondary),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: Text(loc.goalsCancel),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: LuminaColors.error,
+                  ),
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: Text(loc.goalsDelete),
                 ),
               ),
             ],

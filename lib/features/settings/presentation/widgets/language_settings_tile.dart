@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lumina/core/theme/lumina_colors.dart';
-import 'package:lumina/core/theme/lumina_dimensions.dart';
-import 'package:lumina/l10n/app_localizations.dart';
+import 'package:lumina/core/widgets/lumina_dialog.dart';
 import 'package:lumina/features/settings/presentation/cubits/language_cubit.dart';
+import 'package:lumina/features/settings/presentation/widgets/settings_tile.dart';
+import 'package:lumina/l10n/app_localizations.dart';
 
 class LanguageSettingsTile extends StatelessWidget {
   const LanguageSettingsTile({super.key});
@@ -23,86 +24,77 @@ class LanguageSettingsTile extends StatelessWidget {
         .firstWhere((o) => o.code == current, orElse: () => _options.first)
         .nativeName;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: LuminaColors.surface,
-        borderRadius: LuminaDimensions.borderRadiusMedium,
+    return SettingsTile(
+      icon: Icons.language_rounded,
+      iconColor: const Color(0xFF8B5CF6),
+      title: loc.interfaceLanguage,
+      trailing: Text(
+        currentName,
+        style: const TextStyle(color: LuminaColors.textSecondary),
       ),
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: const Color(0xFF8B5CF6).withValues(alpha: 0.1),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.language_rounded,
-            color: Color(0xFF8B5CF6),
-            size: 20,
-          ),
-        ),
-        title: Text(
-          loc.interfaceLanguage,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            fontWeight: FontWeight.w500,
-            color: LuminaColors.textMain,
-          ),
-        ),
-        trailing: Text(
-          currentName,
-          style: const TextStyle(color: LuminaColors.textSecondary),
-        ),
-        onTap: () {
-          HapticFeedback.lightImpact();
-          _openDialog(context, loc, current);
-        },
-      ),
+      onTap: () {
+        HapticFeedback.lightImpact();
+        _openDialog(context, current);
+      },
     );
   }
 
-  void _openDialog(BuildContext context, AppLocalizations loc, String current) {
-    showDialog<void>(
+  void _openDialog(BuildContext context, String current) {
+    final cubit = context.read<LanguageCubit>();
+    final loc = AppLocalizations.of(context)!;
+
+    showLuminaDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text(loc.selectLanguage),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final option in _options)
-              ListTile(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                selected: option.code == current,
-                selectedTileColor: LuminaColors.primary.withValues(alpha: 0.08),
-                title: Text(
-                  option.nativeName,
-                  style: TextStyle(
-                    fontWeight: option.code == current
-                        ? FontWeight.w700
-                        : FontWeight.w500,
-                    color: option.code == current
-                        ? LuminaColors.primary
-                        : LuminaColors.textMain,
+      child: Builder(
+        builder: (dialogContext) => Padding(
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  loc.selectLanguage,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: LuminaColors.textMain,
                   ),
                 ),
-                trailing: option.code == current
-                    ? const Icon(
-                        Icons.check_rounded,
-                        color: LuminaColors.primary,
-                      )
-                    : null,
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  context.read<LanguageCubit>().changeLanguage(option.code);
-                  Navigator.pop(ctx);
-                },
               ),
-          ],
+              const SizedBox(height: 12),
+              for (final option in _options)
+                ListTile(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  selected: option.code == current,
+                  selectedTileColor:
+                      LuminaColors.primary.withValues(alpha: 0.08),
+                  title: Text(
+                    option.nativeName,
+                    style: TextStyle(
+                      fontWeight: option.code == current
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                      color: option.code == current
+                          ? LuminaColors.primary
+                          : LuminaColors.textMain,
+                    ),
+                  ),
+                  trailing: option.code == current
+                      ? const Icon(Icons.check_rounded,
+                          color: LuminaColors.primary)
+                      : null,
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    Navigator.of(dialogContext).pop();
+                    cubit.changeLanguage(option.code);
+                  },
+                ),
+            ],
+          ),
         ),
       ),
     );

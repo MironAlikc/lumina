@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lumina/core/enums/app_currency.dart';
 import 'package:lumina/core/theme/lumina_colors.dart';
-import 'package:lumina/l10n/app_localizations.dart';
+import 'package:lumina/core/widgets/lumina_dialog.dart';
 import 'package:lumina/features/settings/presentation/cubits/currency_cubit.dart';
+import 'package:lumina/features/settings/presentation/widgets/settings_tile.dart';
+import 'package:lumina/l10n/app_localizations.dart';
 
 class CurrencySettingsTile extends StatelessWidget {
   const CurrencySettingsTile({super.key});
@@ -12,72 +14,43 @@ class CurrencySettingsTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
+    final currency = context.watch<CurrencyCubit>().state;
 
-    return BlocBuilder<CurrencyCubit, AppCurrency>(
-      builder: (context, currency) {
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: LuminaColors.surface,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: ListTile(
-            leading: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: LuminaColors.success.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.currency_exchange_rounded,
-                color: LuminaColors.success,
-                size: 20,
-              ),
-            ),
-            title: Text(
-              loc.interfaceCurrency,
-              style: const TextStyle(
-                fontWeight: FontWeight.w500,
-                color: LuminaColors.textMain,
-              ),
-            ),
-            trailing: Text(
-              '${currency.localizedName(loc)} (${currency.symbol})',
-              style: const TextStyle(
-                color: LuminaColors.textSecondary,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            onTap: () {
-              HapticFeedback.lightImpact();
-              _showCurrencyDialog(context, currency);
-            },
-          ),
-        );
+    return SettingsTile(
+      icon: Icons.currency_exchange_rounded,
+      iconColor: LuminaColors.success,
+      title: loc.interfaceCurrency,
+      trailing: Text(
+        '${currency.localizedName(loc)} (${currency.symbol})',
+        style: const TextStyle(
+          color: LuminaColors.textSecondary,
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      onTap: () {
+        HapticFeedback.lightImpact();
+        _openDialog(context, currency);
       },
     );
   }
 
-  void _showCurrencyDialog(BuildContext context, AppCurrency current) {
+  void _openDialog(BuildContext context, AppCurrency current) {
     final cubit = context.read<CurrencyCubit>();
     final loc = AppLocalizations.of(context)!;
 
-    showDialog<void>(
+    showLuminaDialog<void>(
       context: context,
-      builder: (dialogContext) {
-        return Dialog(
-          backgroundColor: LuminaColors.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
+      child: Builder(
+        builder: (dialogContext) => Padding(
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
                   loc.selectCurrency,
                   style: const TextStyle(
                     fontSize: 18,
@@ -85,59 +58,52 @@ class CurrencySettingsTile extends StatelessWidget {
                     color: LuminaColors.textMain,
                   ),
                 ),
-                const SizedBox(height: 16),
-                for (final item in AppCurrency.values) ...[
-                  InkWell(
-                    onTap: () {
-                      HapticFeedback.selectionClick();
-                      cubit.changeCurrency(item);
-                      Navigator.pop(dialogContext);
-                    },
+              ),
+              const SizedBox(height: 4),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  // Суммы не конвертируются: пользователь должен это знать.
+                  loc.currencyChangeNote,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: LuminaColors.textSecondary,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              for (final item in AppCurrency.values)
+                ListTile(
+                  shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: item == current
-                            ? LuminaColors.primary.withValues(alpha: 0.1)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '${item.localizedName(loc)} (${item.symbol})',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: item == current
-                                    ? FontWeight.bold
-                                    : FontWeight.w500,
-                                color: item == current
-                                    ? LuminaColors.primary
-                                    : LuminaColors.textMain,
-                              ),
-                            ),
-                          ),
-                          if (item == current)
-                            const Icon(
-                              Icons.check_rounded,
-                              color: LuminaColors.primary,
-                              size: 20,
-                            ),
-                        ],
-                      ),
+                  ),
+                  selected: item == current,
+                  selectedTileColor:
+                      LuminaColors.primary.withValues(alpha: 0.1),
+                  title: Text(
+                    '${item.localizedName(loc)} (${item.symbol})',
+                    style: TextStyle(
+                      fontWeight:
+                          item == current ? FontWeight.bold : FontWeight.w500,
+                      color: item == current
+                          ? LuminaColors.primary
+                          : LuminaColors.textMain,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                ],
-              ],
-            ),
+                  trailing: item == current
+                      ? const Icon(Icons.check_rounded,
+                          color: LuminaColors.primary)
+                      : null,
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    Navigator.of(dialogContext).pop();
+                    cubit.changeCurrency(item);
+                  },
+                ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

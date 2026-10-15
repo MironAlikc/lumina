@@ -1,18 +1,25 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive/hive.dart';
 import 'package:lumina/core/database/hive_client.dart';
+import 'package:lumina/features/accounts/presentation/cubits/account_cubit.dart';
 import 'package:lumina/features/recurring/data/services/recurring_service.dart';
+import 'package:lumina/features/transactions/data/models/history_expense_model.dart';
 import 'package:lumina/features/transactions/domain/entities/history_expense.dart';
 import 'package:lumina/features/transactions/domain/repositories/history_repository.dart';
 import 'package:lumina/features/transactions/presentation/cubits/history_state.dart';
 
 class HistoryCubit extends Cubit<HistoryState> {
-  HistoryCubit(this._repository) : super(HistoryState()) {
+  HistoryCubit(this._repository, {AccountCubit? accountCubit})
+      : _accountCubit = accountCubit,
+        super(HistoryState()) {
     loadRecords();
   }
 
   final IHistoryRepository _repository;
+  final AccountCubit? _accountCubit;
 
   static const _budgetLimitKey = 'budget_limit';
 
@@ -27,13 +34,16 @@ class HistoryCubit extends Cubit<HistoryState> {
     'cat_goals': {'savings', 'goals', 'цели', 'цілі'},
   };
 
+  bool _loading = false;
+
   Box<dynamic> get _settings => Hive.box(HiveClient.settingsBox);
+
+  static double _r2(double v) => (v * 100).round() / 100;
 
   double _getStoredBudgetLimit() {
     try {
       final raw = _settings.get(_budgetLimitKey, defaultValue: 0.0);
-      if (raw is num) return raw.toDouble();
-      return 0.0;
+      return raw is num ? raw.toDouble() : 0.0;
     } catch (e, st) {
       debugPrint('budget_limit read failed: $e\n$st');
       return 0.0;
@@ -48,35 +58,59 @@ class HistoryCubit extends Cubit<HistoryState> {
     }
   }
 
+  Future<void> processRecurring() async {
+    await _checkRecurringPayments();
+    _refreshState();
+  }
+
   void toggleViewMode(HistoryViewMode mode) {
     if (state.viewMode == mode) return;
     emit(state.copyWith(viewMode: mode));
   }
 
+  void refresh() => _refreshState();
   void updateBudgetLimit(double newLimit) {
-    _saveBudgetLimitToStore(newLimit);
+    unawaited(_saveBudgetLimitToStore(newLimit));
     _recalculate(currentLimit: newLimit);
   }
 
-  Future<void> loadRecords() async {
-    if (isClosed) return;
-    emit(state.copyWith(isLoading: true));
-
-    await _checkRecurringPayments();
-    if (isClosed) return;
-
+  void changeSearchQuery(String query) {
     _calculateAndEmit(
-      _repository.getAllExpenses(),
+      state.allRecords,
       state.activeFilter,
       state.dateFilter,
       state.selectedCategoryKey,
       state.selectedMonth,
       state.selectedYear,
-      currentLimit: _getStoredBudgetLimit(),
+      searchQuery: query,
+      currentLimit: state.budgetLimit,
     );
+  }
 
-    // Используем эффективную пакетную синхронизацию из репозитория
-    await _syncOfflineRecords();
+  Future<void> loadRecords() async {
+    if (isClosed || _loading) return;
+    _loading = true;
+    try {
+      emit(state.copyWith(isLoading: true));
+
+      await _checkRecurringPayments();
+      if (isClosed) return;
+
+      _calculateAndEmit(
+        _repository.getAllExpenses(),
+        state.activeFilter,
+        state.dateFilter,
+        state.selectedCategoryKey,
+        state.selectedMonth,
+        state.selectedYear,
+        searchQuery: state.searchQuery,
+        currentLimit: _getStoredBudgetLimit(),
+      );
+
+      await _syncOfflineRecords();
+    } finally {
+      _loading = false;
+    }
   }
 
   Future<void> _checkRecurringPayments() async {
@@ -84,22 +118,26 @@ class HistoryCubit extends Cubit<HistoryState> {
       await RecurringService.checkAndProcessRecurring((newRecordModel) async {
         final entity = newRecordModel.toEntity();
         await _repository.saveExpense(entity);
+
         try {
-          await _repository.syncWithCloud(entity);
-        } catch (_) {}
+          await _accountCubit?.processTransaction(newRecordModel);
+        } catch (e) {
+          await _repository.deleteExpense(entity.id);
+          rethrow;
+        }
+
+        unawaited(_syncRecord(entity));
       });
     } catch (e, st) {
       debugPrint('Recurring payment check error: $e\n$st');
     }
   }
 
-  void changeFilter(HistoryFilterType typeFilter) {
-    _recalculate(typeFilter: typeFilter);
-  }
+  void changeFilter(HistoryFilterType typeFilter) =>
+      _recalculate(typeFilter: typeFilter);
 
-  void changeDateFilter(DateFilterType dateFilter) {
-    _recalculate(dateFilter: dateFilter);
-  }
+  void changeDateFilter(DateFilterType dateFilter) =>
+      _recalculate(dateFilter: dateFilter);
 
   void changeCategoryFilter(String? categoryKey) {
     final isAll = categoryKey == null || categoryKey.isEmpty;
@@ -111,12 +149,13 @@ class HistoryCubit extends Cubit<HistoryState> {
       state.selectedMonth,
       state.selectedYear,
       clearCategory: isAll,
+      searchQuery: state.searchQuery,
       currentLimit: state.budgetLimit,
     );
   }
 
   void changeMonth(int month, int year) {
-    _recalculate(month: month, year: year);
+    _recalculate(month: month, year: year, dateFilter: DateFilterType.all);
   }
 
   void _recalculate({
@@ -133,6 +172,7 @@ class HistoryCubit extends Cubit<HistoryState> {
       state.selectedCategoryKey,
       month ?? state.selectedMonth,
       year ?? state.selectedYear,
+      searchQuery: state.searchQuery,
       currentLimit: currentLimit ?? state.budgetLimit,
     );
   }
@@ -145,10 +185,12 @@ class HistoryCubit extends Cubit<HistoryState> {
     int month,
     int year, {
     bool clearCategory = false,
+    String? searchQuery,
     required double currentLimit,
   }) {
     if (isClosed) return;
 
+    final query = (searchQuery ?? state.searchQuery).trim().toLowerCase();
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final weekStart = today.subtract(Duration(days: now.weekday - 1));
@@ -157,9 +199,9 @@ class HistoryCubit extends Cubit<HistoryState> {
     final sortedRecords = List<HistoryExpense>.from(records)
       ..sort((a, b) => b.date.compareTo(a.date));
 
-    final monthFiltered = sortedRecords.where((r) {
-      return r.date.month == month && r.date.year == year;
-    }).toList();
+    final monthFiltered = sortedRecords
+        .where((r) => r.date.month == month && r.date.year == year)
+        .toList();
 
     final dateFiltered = monthFiltered.where((r) {
       final day = DateTime(r.date.year, r.date.month, r.date.day);
@@ -174,39 +216,49 @@ class HistoryCubit extends Cubit<HistoryState> {
     }).toList();
 
     final typeFiltered = switch (typeFilter) {
-      HistoryFilterType.expense =>
-        dateFiltered.where((e) => !e.isIncome).toList(),
-      HistoryFilterType.income =>
-        dateFiltered.where((e) => e.isIncome).toList(),
+      HistoryFilterType.expense => dateFiltered.where((e) => e.isExpense),
+      HistoryFilterType.income => dateFiltered.where((e) => e.isIncome),
       HistoryFilterType.all => dateFiltered,
-    };
+    }
+        .toList();
 
     final effectiveKey = clearCategory ? null : categoryKey;
-    final finalFiltered = (effectiveKey == null)
+    final categoryFiltered = effectiveKey == null
         ? typeFiltered
         : typeFiltered.where((e) => _matchesCategory(e, effectiveKey)).toList();
+
+    final finalFiltered = query.isEmpty
+        ? categoryFiltered
+        : categoryFiltered.where((e) {
+            final nameMatch = e.productName.toLowerCase().contains(query);
+            final categoryMatch = e.category.toLowerCase().contains(query);
+            return nameMatch || categoryMatch;
+          }).toList();
 
     var incomes = 0.0;
     var expenses = 0.0;
     for (final r in monthFiltered) {
       if (r.isIncome) {
         incomes += r.price;
-      } else {
+      } else if (r.isExpense) {
         expenses += r.price;
       }
     }
+    incomes = _r2(incomes);
+    expenses = _r2(expenses);
 
     emit(
       state.copyWith(
         allRecords: sortedRecords,
         filteredRecords: finalFiltered,
-        totalBalance: incomes - expenses,
+        totalBalance: _r2(incomes - expenses),
         totalIncomes: incomes,
         totalExpenses: expenses,
         activeFilter: typeFilter,
         dateFilter: dateFilter,
         selectedCategoryKey: effectiveKey,
         clearCategory: clearCategory,
+        searchQuery: query,
         selectedMonth: month,
         selectedYear: year,
         budgetLimit: currentLimit,
@@ -219,31 +271,98 @@ class HistoryCubit extends Cubit<HistoryState> {
     final stored = e.category.trim().toLowerCase();
     final needle = key.trim().toLowerCase();
     if (stored == needle) return true;
-    final aliases = _categoryAliases[needle];
-    if (aliases != null && aliases.contains(stored)) return true;
-    for (final entry in _categoryAliases.entries) {
-      if (entry.value.contains(stored) && entry.key == needle) return true;
-    }
-    return false;
+    return _categoryAliases[needle]?.contains(stored) ?? false;
   }
 
   Future<void> addRecord(HistoryExpense record) async {
     await _repository.saveExpense(record);
-    _refreshState();
+
     try {
-      await _repository.syncWithCloud(record);
-      _refreshState();
+      await _accountCubit?.processTransaction(
+        HistoryExpenseModel.fromEntity(record),
+      );
     } catch (e, st) {
-      debugPrint('Sync error: $e\n$st');
+      debugPrint('addRecord: balance update failed, rolling back: $e\n$st');
+      await _repository.deleteExpense(record.id);
+      _refreshState();
+      rethrow;
     }
+
+    _refreshState();
+    unawaited(_syncRecord(record));
+  }
+
+  Future<void> updateRecord(HistoryExpense updated) async {
+    final old = _repository.getById(updated.id);
+    if (old == null) return addRecord(updated);
+
+    final next = updated.copyWith(isSynced: false);
+    await _repository.saveExpense(next);
+
+    try {
+      final accounts = _accountCubit;
+      if (accounts != null) {
+        final newModel = HistoryExpenseModel.fromEntity(next);
+        final oldModel = HistoryExpenseModel.fromEntity(old);
+
+        if (old.accountId == null) {
+          await accounts.processTransaction(newModel);
+        } else {
+          await accounts.replaceTransaction(oldModel, newModel);
+        }
+      }
+    } catch (e, st) {
+      debugPrint('updateRecord: balance update failed, restoring: $e\n$st');
+      await _repository.saveExpense(old);
+      _refreshState();
+      rethrow;
+    }
+
+    _refreshState();
+    unawaited(_syncRecord(next));
   }
 
   Future<void> removeRecord(String id) async {
-    await _repository.deleteExpense(id);
-    _refreshState();
+    final record = _repository.getById(id);
+    if (record == null) return;
+
+    _calculateAndEmit(
+      state.allRecords.where((r) => r.id != id).toList(),
+      state.activeFilter,
+      state.dateFilter,
+      state.selectedCategoryKey,
+      state.selectedMonth,
+      state.selectedYear,
+      searchQuery: state.searchQuery,
+      currentLimit: state.budgetLimit,
+    );
+
+    if (record.accountId != null) {
+      try {
+        await _accountCubit?.rollbackTransaction(
+          HistoryExpenseModel.fromEntity(record),
+        );
+      } catch (e, st) {
+        debugPrint('removeRecord: balance rollback failed: $e\n$st');
+        _refreshState();
+        rethrow;
+      }
+    }
+
     try {
-      await _repository.deleteFromCloud(id);
-    } catch (_) {}
+      await _repository.deleteExpense(id);
+    } catch (e, st) {
+      debugPrint('removeRecord: local delete failed: $e\n$st');
+      if (record.accountId != null) {
+        await _accountCubit?.processTransaction(
+          HistoryExpenseModel.fromEntity(record),
+        );
+      }
+      _refreshState();
+      rethrow;
+    }
+
+    unawaited(_repository.deleteFromCloud(id));
   }
 
   void _refreshState() {
@@ -254,13 +373,22 @@ class HistoryCubit extends Cubit<HistoryState> {
       state.selectedCategoryKey,
       state.selectedMonth,
       state.selectedYear,
+      searchQuery: state.searchQuery,
       currentLimit: state.budgetLimit,
     );
   }
 
+  Future<void> _syncRecord(HistoryExpense record) async {
+    try {
+      await _repository.syncWithCloud(record);
+      _refreshState();
+    } catch (e, st) {
+      debugPrint('Sync error: $e\n$st');
+    }
+  }
+
   Future<void> _syncOfflineRecords() async {
     try {
-      // Вызываем пакетную синхронизацию из репозитория
       await _repository.syncUnsyncedRecords();
       _refreshState();
     } catch (e, st) {

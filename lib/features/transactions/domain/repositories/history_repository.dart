@@ -4,6 +4,9 @@ abstract class IHistoryRepository {
   /// Получить все локальные записи расходов и доходов
   List<HistoryExpense> getAllExpenses();
 
+  /// Получить одну запись по id (null, если её нет)
+  HistoryExpense? getById(String id);
+
   /// Сохранить или обновить запись локально
   Future<void> saveExpense(HistoryExpense expense);
 

@@ -1,41 +1,81 @@
 import 'package:flutter/foundation.dart';
 
+enum ScannedReceiptSource { ocr, qr, unknown }
+
 @immutable
 class ScannedLine {
-  const ScannedLine({required this.name, required this.amount});
+  const ScannedLine({
+    required this.name,
+    required this.price,
+    this.barcode,
+    this.suggestedCategoryId,
+  });
 
   final String name;
-  final double amount;
+  final double price;
+  final String? barcode;
+
+  /// Подсказка категории. null: определить не удалось.
+  final String? suggestedCategoryId;
+
+  double get amount => price;
+
+  ScannedLine copyWith({
+    String? name,
+    double? price,
+    String? barcode,
+    String? suggestedCategoryId,
+  }) {
+    return ScannedLine(
+      name: name ?? this.name,
+      price: price ?? this.price,
+      barcode: barcode ?? this.barcode,
+      suggestedCategoryId: suggestedCategoryId ?? this.suggestedCategoryId,
+    );
+  }
 }
 
 @immutable
 class ScannedReceipt {
   const ScannedReceipt({
-    required this.merchant,
-    required this.amount,
+    required this.rawText,
     required this.date,
-    this.rawText = '',
+    required this.source,
+    this.merchant = '',
+    this.total,
     this.lines = const [],
-    this.source = ScannedReceiptSource.ocr,
   });
 
-  final String merchant;
-  final double amount;
-  final DateTime date;
   final String rawText;
-  final List<ScannedLine> lines;
+  final DateTime date;
   final ScannedReceiptSource source;
+  final String merchant;
+  final double? total;
+  final List<ScannedLine> lines;
 
-  ScannedReceipt copyWith({String? merchant, double? amount, DateTime? date}) {
+  /// Итог чека; если он не распознан, сумма позиций (с округлением до копеек).
+  double get amount {
+    final t = total;
+    if (t != null && t > 0) return t;
+    final sum = lines.fold<double>(0, (s, e) => s + e.price);
+    return (sum * 100).round() / 100;
+  }
+
+  ScannedReceipt copyWith({
+    String? rawText,
+    DateTime? date,
+    ScannedReceiptSource? source,
+    String? merchant,
+    double? total,
+    List<ScannedLine>? lines,
+  }) {
     return ScannedReceipt(
-      merchant: merchant ?? this.merchant,
-      amount: amount ?? this.amount,
+      rawText: rawText ?? this.rawText,
       date: date ?? this.date,
-      rawText: rawText,
-      lines: lines,
-      source: source,
+      source: source ?? this.source,
+      merchant: merchant ?? this.merchant,
+      total: total ?? this.total,
+      lines: lines ?? this.lines,
     );
   }
 }
-
-enum ScannedReceiptSource { ocr, fiscalQr }

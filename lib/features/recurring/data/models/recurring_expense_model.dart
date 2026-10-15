@@ -31,6 +31,9 @@ class RecurringExpenseModel extends HiveObject {
   @HiveField(8)
   final int lastProcessedYear;
 
+  @HiveField(9)
+  final String? accountId;
+
   RecurringExpenseModel({
     required this.id,
     required this.productName,
@@ -41,6 +44,7 @@ class RecurringExpenseModel extends HiveObject {
     required this.typeName,
     required this.lastProcessedMonth,
     required this.lastProcessedYear,
+    this.accountId,
   });
 
   RecurringExpenseModel copyWith({
@@ -53,6 +57,7 @@ class RecurringExpenseModel extends HiveObject {
     String? typeName,
     int? lastProcessedMonth,
     int? lastProcessedYear,
+    String? accountId,
   }) {
     return RecurringExpenseModel(
       id: id ?? this.id,
@@ -64,6 +69,7 @@ class RecurringExpenseModel extends HiveObject {
       typeName: typeName ?? this.typeName,
       lastProcessedMonth: lastProcessedMonth ?? this.lastProcessedMonth,
       lastProcessedYear: lastProcessedYear ?? this.lastProcessedYear,
+      accountId: accountId ?? this.accountId,
     );
   }
 }

@@ -118,8 +118,7 @@ class MonthlyMatrixWidget extends StatelessWidget {
       cols.add(
         _MatrixCol(
           id: key,
-          title:
-              c?.localizedName(loc) ??
+          title: c?.localizedName(loc) ??
               (key.startsWith('cat_') ? loc.otherCategory : key),
           isIncome: c?.isIncome ?? false,
           icon: c?.icon,
@@ -157,8 +156,7 @@ class MonthlyMatrixWidget extends StatelessWidget {
       builder: (context, constraints) {
         final screenW = MediaQuery.sizeOf(context).width;
         final hPad = landscape ? 8.0 : 16.0;
-        final maxW =
-            (constraints.maxWidth.isFinite && constraints.maxWidth > 0
+        final maxW = (constraints.maxWidth.isFinite && constraints.maxWidth > 0
                 ? constraints.maxWidth
                 : screenW) -
             hPad * 2;
@@ -172,9 +170,8 @@ class MonthlyMatrixWidget extends StatelessWidget {
         var netW = minNetW;
         final leftover = (maxW - dayW - netW).clamp(0.0, maxW).toDouble();
         final canFit = catCount == 0 || leftover >= catCount * minCatW;
-        final catW = catCount == 0
-            ? leftover
-            : (canFit ? leftover / catCount : minCatW);
+        final catW =
+            catCount == 0 ? leftover : (canFit ? leftover / catCount : minCatW);
 
         if (catCount == 0) {
           netW = (maxW - dayW).clamp(minNetW, maxW).toDouble();
@@ -259,9 +256,8 @@ class MonthlyMatrixWidget extends StatelessWidget {
                     style: TextStyle(
                       fontSize: landscape ? 12 : 13,
                       fontWeight: FontWeight.w600,
-                      color: income
-                          ? LuminaColors.success
-                          : LuminaTheme.textColor,
+                      color:
+                          income ? LuminaColors.success : LuminaTheme.textColor,
                     ),
                   )
                 : const SizedBox.shrink(),
@@ -485,9 +481,8 @@ class MonthlyMatrixWidget extends StatelessWidget {
                     '${net >= 0 ? '+' : '−'}${whole.format(net.abs())} $currencySymbol',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: net >= 0
-                          ? LuminaColors.success
-                          : LuminaColors.error,
+                      color:
+                          net >= 0 ? LuminaColors.success : LuminaColors.error,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -495,7 +490,8 @@ class MonthlyMatrixWidget extends StatelessWidget {
                     child: ListView.separated(
                       shrinkWrap: true,
                       itemCount: dayRecords.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 8),
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 8),
                       itemBuilder: (_, i) {
                         final r = dayRecords[i];
                         final cat = map[_keyOf(r)];

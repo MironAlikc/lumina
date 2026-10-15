@@ -2,15 +2,11 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:lumina/features/transactions/domain/entities/history_expense.dart';
 
-// ==========================================
-// STATE
-// ==========================================
-
 enum HistoryFilterType { all, expense, income }
 
 enum DateFilterType { all, today, yesterday, thisWeek }
 
-enum HistoryViewMode { list, table }
+enum HistoryViewMode { list, calendar, table }
 
 @immutable
 class HistoryState extends Equatable {
@@ -23,13 +19,14 @@ class HistoryState extends Equatable {
     this.activeFilter = HistoryFilterType.all,
     this.dateFilter = DateFilterType.all,
     this.selectedCategoryKey,
+    this.searchQuery = '',
     int? selectedMonth,
     int? selectedYear,
     this.budgetLimit = 0.0,
     this.isLoading = false,
     this.viewMode = HistoryViewMode.list,
-  }) : selectedMonth = selectedMonth ?? DateTime.now().month,
-       selectedYear = selectedYear ?? DateTime.now().year;
+  })  : selectedMonth = selectedMonth ?? DateTime.now().month,
+        selectedYear = selectedYear ?? DateTime.now().year;
 
   final List<HistoryExpense> allRecords;
   final List<HistoryExpense> filteredRecords;
@@ -39,6 +36,7 @@ class HistoryState extends Equatable {
   final HistoryFilterType activeFilter;
   final DateFilterType dateFilter;
   final String? selectedCategoryKey;
+  final String searchQuery;
   final int selectedMonth;
   final int selectedYear;
   final double budgetLimit;
@@ -55,6 +53,7 @@ class HistoryState extends Equatable {
     DateFilterType? dateFilter,
     String? selectedCategoryKey,
     bool clearCategory = false,
+    String? searchQuery,
     int? selectedMonth,
     int? selectedYear,
     double? budgetLimit,
@@ -72,6 +71,7 @@ class HistoryState extends Equatable {
       selectedCategoryKey: clearCategory
           ? null
           : (selectedCategoryKey ?? this.selectedCategoryKey),
+      searchQuery: searchQuery ?? this.searchQuery,
       selectedMonth: selectedMonth ?? this.selectedMonth,
       selectedYear: selectedYear ?? this.selectedYear,
       budgetLimit: budgetLimit ?? this.budgetLimit,
@@ -82,18 +82,19 @@ class HistoryState extends Equatable {
 
   @override
   List<Object?> get props => [
-    allRecords,
-    filteredRecords,
-    totalBalance,
-    totalIncomes,
-    totalExpenses,
-    activeFilter,
-    dateFilter,
-    selectedCategoryKey,
-    selectedMonth,
-    selectedYear,
-    budgetLimit,
-    isLoading,
-    viewMode,
-  ];
+        allRecords,
+        filteredRecords,
+        totalBalance,
+        totalIncomes,
+        totalExpenses,
+        activeFilter,
+        dateFilter,
+        selectedCategoryKey,
+        searchQuery,
+        selectedMonth,
+        selectedYear,
+        budgetLimit,
+        isLoading,
+        viewMode,
+      ];
 }

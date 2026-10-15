@@ -1,18 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:lumina/core/theme/lumina_theme.dart';
+import 'package:lumina/core/theme/lumina_colors.dart';
 import 'package:lumina/l10n/app_localizations.dart';
 
 class NoteInputField extends StatelessWidget {
-  final TextEditingController controller;
+  const NoteInputField({
+    super.key,
+    required this.controller,
+    this.maxLength = 80,
+  });
 
-  const NoteInputField({super.key, required this.controller});
+  final TextEditingController controller;
+  final int maxLength;
 
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      child: Container(
+      child: DecoratedBox(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
@@ -26,13 +32,21 @@ class NoteInputField extends StatelessWidget {
         child: TextField(
           controller: controller,
           maxLines: 1,
-          cursorColor: LuminaTheme.accentColor,
-          style: const TextStyle(fontSize: 16, color: LuminaTheme.textColor),
+          maxLength: maxLength,
+          textCapitalization: TextCapitalization.sentences,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => FocusScope.of(context).unfocus(),
+          cursorColor: LuminaColors.accent,
+          style: const TextStyle(fontSize: 16, color: LuminaColors.textMain),
           decoration: InputDecoration(
             hintText: loc.addNote,
-            hintStyle: const TextStyle(color: Colors.black38, fontSize: 15),
+            hintStyle: TextStyle(
+              color: LuminaColors.textSecondary.withValues(alpha: 0.7),
+              fontSize: 15,
+            ),
+            counterText: '',
             filled: true,
-            fillColor: Colors.white,
+            fillColor: LuminaColors.surface,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 20,
               vertical: 16,
@@ -40,6 +54,13 @@ class NoteInputField extends StatelessWidget {
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(18),
               borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(18),
+              borderSide: const BorderSide(
+                color: LuminaColors.accent,
+                width: 1.4,
+              ),
             ),
           ),
         ),

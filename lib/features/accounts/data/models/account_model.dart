@@ -2,7 +2,7 @@ import 'package:hive/hive.dart';
 
 part 'account_model.g.dart';
 
-@HiveType(typeId: 6) // Убедитесь, что typeId уникален в вашем проекте
+@HiveType(typeId: 6)
 class AccountModel extends HiveObject {
   @HiveField(0)
   final String id;
@@ -14,7 +14,8 @@ class AccountModel extends HiveObject {
   final double balance;
 
   @HiveField(3)
-  final String iconCode; // Строковое представление иконки (например, 'credit_card')
+  final String
+      iconCode; // Строковое представление иконки (например, 'credit_card')
 
   @HiveField(4)
   final int colorValue; // Цвет счета в HEX

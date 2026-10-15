@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:lumina/core/services/supabase_sync_service.dart';
 import 'package:lumina/core/theme/lumina_colors.dart';
 import 'package:lumina/core/theme/lumina_theme.dart';
+import 'package:lumina/core/widgets/lumina_dialog.dart';
 import 'package:lumina/features/categories/data/models/custom_category_model.dart';
 import 'package:lumina/features/transactions/data/models/history_expense_model.dart';
 import 'package:lumina/features/transactions/presentation/cubits/history_cubit.dart';
@@ -28,7 +30,9 @@ class TransactionTile extends StatelessWidget {
   final VoidCallback? onDelete;
   final bool enableDismissible;
 
-  static String _localizeStoredName(String raw, AppLocalizations loc) {
+  /// Устаревшие записи хранят в productName локализованное имя категории.
+  /// Удалить после разовой миграции данных.
+  static String _localizeLegacyName(String raw, AppLocalizations loc) {
     return switch (raw.trim().toLowerCase()) {
       'food' || 'food & drinks' => loc.catFood,
       'transport' => loc.catTransport,
@@ -40,23 +44,88 @@ class TransactionTile extends StatelessWidget {
     };
   }
 
+  static String formatAmount(double value, String locale) {
+    final hasFraction = (value * 100).round() % 100 != 0;
+    return NumberFormat.decimalPatternDigits(
+      locale: locale,
+      decimalDigits: hasFraction ? 2 : 0,
+    ).format(value);
+  }
+
+  String _signedAmount(String locale) {
+    final sign = switch (record.type) {
+      TransactionType.income => '+',
+      TransactionType.expense => '−',
+      TransactionType.transfer => '',
+    };
+    return '$sign${formatAmount(record.price, locale)} $currencySymbol';
+  }
+
+  Color get _amountColor => switch (record.type) {
+        TransactionType.income => LuminaColors.success,
+        TransactionType.expense => LuminaColors.textMain,
+        TransactionType.transfer => LuminaColors.accentDeep,
+      };
+
+  String _displayName(AppLocalizations loc, String? categoryLabel) {
+    final stored = record.productName.trim();
+    if (stored.isNotEmpty) return _localizeLegacyName(stored, loc);
+    if (record.isTransfer) return loc.transfer;
+    if (categoryLabel != null) return categoryLabel;
+    final fallback = record.categoryName?.trim() ?? '';
+    if (fallback.isNotEmpty) return _localizeLegacyName(fallback, loc);
+    return loc.defaultTransactionName;
+  }
+
+  void _edit(BuildContext context) {
+    HapticFeedback.mediumImpact();
+    if (onEdit != null) {
+      onEdit!();
+      return;
+    }
+    context.push(
+      '/add-transaction',
+      extra: {
+        'name': record.productName,
+        'price': record.price,
+        'id': record.id,
+        'categoryId': record.categoryId,
+      },
+    );
+  }
+
+  void _performDelete({
+    required ScaffoldMessengerState messenger,
+    required HistoryCubit cubit,
+    required AppLocalizations loc,
+  }) {
+    if (onDelete != null) {
+      onDelete!();
+      return;
+    }
+    final backup = record.toEntity();
+    cubit.removeRecord(record.id);
+    messenger
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(loc.transactionDeleted),
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: loc.undo,
+            onPressed: () => cubit.addRecord(backup),
+          ),
+        ),
+      );
+  }
+
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).toString();
 
-    final isIncome = record.isIncome || record.type == TransactionType.income;
-
     final categoryLabel = category?.localizedName(loc);
-    final stored = record.productName.trim();
-    final mapped = stored.isEmpty ? '' : _localizeStoredName(stored, loc);
-
-    final displayName = mapped.isNotEmpty
-        ? mapped
-        : (categoryLabel ??
-              (record.categoryName?.isNotEmpty == true
-                  ? _localizeStoredName(record.categoryName!, loc)
-                  : loc.defaultTransactionName));
+    final displayName = _displayName(loc, categoryLabel);
 
     final hasTime = record.date.hour != 0 || record.date.minute != 0;
     final dateLabel = DateFormat(
@@ -64,280 +133,285 @@ class TransactionTile extends StatelessWidget {
       locale,
     ).format(record.date);
 
-    final amountColor = isIncome ? LuminaColors.success : LuminaColors.textMain;
-    final iconColor = category?.color ?? LuminaTheme.accentColor;
-    final categoryNameStr =
-        category?.name ?? record.categoryName ?? 'Без категории';
+    final subtitle = categoryLabel != null && categoryLabel != displayName
+        ? '$categoryLabel · $dateLabel'
+        : dateLabel;
 
-    final tileContent = Container(
+    final iconColor = record.isTransfer
+        ? LuminaColors.accentDeep
+        : (category?.color ?? LuminaTheme.accentColor);
+    final iconData = record.isTransfer
+        ? Icons.swap_horiz_rounded
+        : (category?.icon ?? Icons.receipt_long_rounded);
+
+    final amountText = _signedAmount(locale);
+    final showSyncState = SupabaseSyncService.instance.isAuthenticated;
+
+    final tile = Container(
       margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: LuminaTheme.premiumShadow,
       ),
-      child: InkWell(
+      child: Material(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          HapticFeedback.lightImpact();
-          _showTransactionDetailsDialog(
-            context,
-            record,
-            categoryNameStr,
-            currencySymbol,
-            category,
-          );
-        },
-        onLongPress: () {
-          HapticFeedback.vibrate();
-          if (onEdit != null) {
-            onEdit!();
-          } else {
-            context.push(
-              '/add-transaction',
-              extra: {
-                'name': record.productName,
-                'price': record.price,
-                'id': record.id,
-                'categoryId': record.categoryId,
-              },
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            _showDetails(
+              context,
+              displayName: displayName,
+              categoryLabel: categoryLabel ?? loc.exportNoCategory,
+              amountText: amountText,
             );
-          }
-        },
-        child: Row(
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                category?.icon ?? Icons.receipt_long_rounded,
-                color: iconColor,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    displayName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: LuminaTheme.textColor,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    categoryLabel != null && categoryLabel != displayName
-                        ? '$categoryLabel · $dateLabel'
-                        : dateLabel,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: LuminaTheme.subTitleColor,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+          },
+          onLongPress: () => _edit(context),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
               children: [
-                Text(
-                  '${isIncome ? '+' : '-'}${record.price.toStringAsFixed(0)} $currencySymbol',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: amountColor,
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: iconColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(iconData, color: iconColor, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: LuminaTheme.textColor,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: LuminaTheme.subTitleColor,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 2),
-                Icon(
-                  record.isSynced ? Icons.cloud_done : Icons.cloud_upload,
-                  size: 12,
-                  color: record.isSynced ? Colors.green : Colors.amber,
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      amountText,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: _amountColor,
+                      ),
+                    ),
+                    if (showSyncState) ...[
+                      const SizedBox(height: 2),
+                      Icon(
+                        record.isSynced
+                            ? Icons.cloud_done_rounded
+                            : Icons.cloud_upload_rounded,
+                        size: 12,
+                        color: record.isSynced
+                            ? LuminaColors.success
+                            : Colors.amber,
+                      ),
+                    ],
+                  ],
                 ),
+                if (onEdit != null)
+                  IconButton(
+                    tooltip: loc.change,
+                    icon: const Icon(
+                      Icons.edit_outlined,
+                      size: 18,
+                      color: LuminaColors.textSecondary,
+                    ),
+                    onPressed: onEdit,
+                  ),
+                if (onDelete != null)
+                  IconButton(
+                    tooltip: loc.delete,
+                    icon: const Icon(
+                      Icons.delete_outline_rounded,
+                      size: 18,
+                      color: LuminaColors.error,
+                    ),
+                    onPressed: onDelete,
+                  ),
               ],
             ),
-            if (onEdit != null || onDelete != null) ...[
-              if (onEdit != null)
-                IconButton(
-                  icon: const Icon(
-                    Icons.edit_outlined,
-                    size: 18,
-                    color: Colors.grey,
-                  ),
-                  constraints: const BoxConstraints(),
-                  padding: const EdgeInsets.only(left: 6),
-                  onPressed: onEdit,
-                ),
-              if (onDelete != null)
-                IconButton(
-                  icon: const Icon(
-                    Icons.delete_outline_rounded,
-                    size: 18,
-                    color: Colors.redAccent,
-                  ),
-                  constraints: const BoxConstraints(),
-                  padding: const EdgeInsets.only(left: 4),
-                  onPressed: onDelete,
-                ),
-            ],
-          ],
+          ),
         ),
       ),
     );
 
-    if (!enableDismissible) {
-      return tileContent;
-    }
+    final accessible = Semantics(
+      container: true,
+      label: '$displayName, $subtitle, $amountText',
+      child: ExcludeSemantics(child: tile),
+    );
+
+    if (!enableDismissible) return accessible;
 
     return Dismissible(
       key: ValueKey(record.id),
       direction: DismissDirection.endToStart,
       background: Container(
-        margin: const EdgeInsets.symmetric(vertical: 6),
+        margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
-          color: const Color(0xFFFEE2E2),
+          color: LuminaColors.errorSoft,
           borderRadius: BorderRadius.circular(16),
         ),
         child: const Icon(
           Icons.delete_outline_rounded,
-          color: Color(0xFFEF4444),
+          color: LuminaColors.error,
         ),
       ),
       onDismissed: (_) {
         HapticFeedback.heavyImpact();
-        if (onDelete != null) {
-          onDelete!();
-        } else {
-          context.read<HistoryCubit>().removeRecord(record.id);
-        }
+        _performDelete(
+          messenger: ScaffoldMessenger.of(context),
+          cubit: context.read<HistoryCubit>(),
+          loc: loc,
+        );
       },
-      child: tileContent,
+      child: accessible,
     );
   }
 
-  void _showTransactionDetailsDialog(
-    BuildContext context,
-    HistoryExpenseModel record,
-    String categoryName,
-    String currencySymbol,
-    CustomCategory? category,
-  ) {
-    final isIncome = record.isIncome || record.type == TransactionType.income;
+  void _showDetails(
+    BuildContext context, {
+    required String displayName,
+    required String categoryLabel,
+    required String amountText,
+  }) {
+    final loc = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).toString();
+    final messenger = ScaffoldMessenger.of(context);
+    final cubit = context.read<HistoryCubit>();
+    final dateText = DateFormat.yMMMd(locale).add_Hm().format(record.date);
+    final typeText = switch (record.type) {
+      TransactionType.income => loc.incomeType,
+      TransactionType.expense => loc.expense,
+      TransactionType.transfer => loc.transfer,
+    };
 
-    showDialog(
+    showLuminaDialog<void>(
       context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.45),
-      builder: (dialogContext) {
-        return Dialog(
-          backgroundColor: Colors.white,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 12, 12, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    loc.transactionDetails,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: LuminaColors.textMain,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: loc.cancel,
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    color: LuminaColors.textSecondary,
+                  ),
+                  onPressed: () =>
+                      Navigator.of(context, rootNavigator: true).pop(),
+                ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  _DetailRow(label: loc.nameLabel, value: displayName),
+                  _DetailRow(label: loc.categoryLabel, value: categoryLabel),
+                  _DetailRow(label: loc.categoryType, value: typeText),
+                  _DetailRow(label: loc.amountLabel, value: amountText),
+                  _DetailRow(label: loc.dateLabel, value: dateText),
+                  const SizedBox(height: 20),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Детали транзакции',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                      Expanded(
+                        child: SizedBox(
+                          height: 50,
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.edit_outlined),
+                            label: Text(loc.change),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: LuminaColors.accentDeep,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            onPressed: () {
+                              Navigator.of(context, rootNavigator: true).pop();
+                              _edit(context);
+                            },
+                          ),
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.close, color: Colors.black54),
-                        onPressed: () => Navigator.pop(dialogContext),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: SizedBox(
+                          height: 50,
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.delete_outline_rounded),
+                            label: Text(loc.delete),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: LuminaColors.errorSoft,
+                              foregroundColor: LuminaColors.error,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            onPressed: () {
+                              HapticFeedback.mediumImpact();
+                              Navigator.of(context, rootNavigator: true).pop();
+                              _performDelete(
+                                messenger: messenger,
+                                cubit: cubit,
+                                loc: loc,
+                              );
+                            },
+                          ),
+                        ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 16),
-                  _DetailRow(
-                    label: 'Название:',
-                    value: record.productName.isNotEmpty
-                        ? record.productName
-                        : categoryName,
-                  ),
-                  _DetailRow(label: 'Категория:', value: categoryName),
-                  _DetailRow(
-                    label: 'Сумма:',
-                    value:
-                        '${isIncome ? '+' : '-'}${record.price.toStringAsFixed(0)} $currencySymbol',
-                  ),
-                  _DetailRow(
-                    label: 'Дата:',
-                    value: DateFormat.yMMMd(
-                      Localizations.localeOf(context).languageCode,
-                    ).format(record.date),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFEE2E2),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      icon: const Icon(
-                        Icons.delete_outline_rounded,
-                        color: Color(0xFFEF4444),
-                      ),
-                      label: const Text(
-                        'Удалить транзакцию',
-                        style: TextStyle(
-                          color: Color(0xFFEF4444),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      onPressed: () async {
-                        HapticFeedback.mediumImpact();
-                        if (onDelete != null) {
-                          onDelete!();
-                        } else {
-                          await context.read<HistoryCubit>().removeRecord(
-                            record.id,
-                          );
-                        }
-                        if (dialogContext.mounted) {
-                          Navigator.pop(dialogContext);
-                        }
-                      },
-                    ),
                   ),
                 ],
               ),
             ),
-          ),
-        );
-      },
+          ],
+        ),
+      ),
     );
   }
 }
@@ -353,18 +427,25 @@ class _DetailRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
-            style: const TextStyle(color: Colors.black54, fontSize: 14),
-          ),
-          Text(
-            value,
             style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              color: LuminaColors.textSecondary,
               fontSize: 14,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                color: LuminaColors.textMain,
+                fontSize: 14,
+              ),
             ),
           ),
         ],

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-class LuminaColors {
+abstract final class LuminaColors {
   static const Color accent = Color(0xFF0D9488);
-  static const Color primary = Color(0xFF0D9488);
+  static const Color primary = accent;
 
   static const Color accentDeep = Color(0xFF115E59);
   static const Color accentSoft = Color(0xFFF0FDFA);
@@ -21,6 +21,7 @@ class LuminaColors {
   static const Color inputFill = Color(0xFFF1F5F9);
 
   static const Color success = Color(0xFF10B981);
+  static const Color warning = Color(0xFFF59E0B);
   static const Color error = Color(0xFFEF4444);
   static const Color errorDeep = Color(0xFFB91C1C);
   static const Color errorSoft = Color(0xFFFEF2F2);

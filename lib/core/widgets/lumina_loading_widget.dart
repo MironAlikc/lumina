@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+/// Скелетон списка. Анимация отключается, если пользователь
+/// включил «уменьшить движение».
 class LuminaLoadingWidget extends StatefulWidget {
   const LuminaLoadingWidget({super.key});
 
@@ -10,6 +12,7 @@ class LuminaLoadingWidget extends StatefulWidget {
 class _LuminaLoadingWidgetState extends State<LuminaLoadingWidget>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
+  late final Animation<double> _opacity;
 
   @override
   void initState() {
@@ -17,7 +20,20 @@ class _LuminaLoadingWidgetState extends State<LuminaLoadingWidget>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
-    )..repeat(reverse: true);
+    );
+    _opacity = Tween<double>(begin: 0.4, end: 0.9).animate(_controller);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _controller
+        ..stop()
+        ..value = 1;
+    } else if (!_controller.isAnimating) {
+      _controller.repeat(reverse: true);
+    }
   }
 
   @override
@@ -28,51 +44,59 @@ class _LuminaLoadingWidgetState extends State<LuminaLoadingWidget>
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: Tween<double>(begin: 0.3, end: 0.8).animate(_controller),
-      child: ListView.builder(
-        physics: const NeverScrollableScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        itemCount: 6,
-        itemBuilder: (context, index) => Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          height: 72,
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(20),
+    return RepaintBoundary(
+      child: FadeTransition(
+        opacity: _opacity,
+        child: ListView.builder(
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          itemCount: 6,
+          itemBuilder: (_, __) => const _SkeletonRow(),
+        ),
+      ),
+    );
+  }
+}
+
+class _SkeletonRow extends StatelessWidget {
+  const _SkeletonRow();
+
+  static const _bone = BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.all(Radius.circular(4)),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      height: 72,
+      decoration: const BoxDecoration(
+        color: Color(0x0F000000),
+        borderRadius: BorderRadius.all(Radius.circular(20)),
+      ),
+      child: const Row(
+        children: [
+          Padding(
+            padding: EdgeInsets.all(16),
+            child: CircleAvatar(backgroundColor: Colors.white, radius: 20),
           ),
-          child: Row(
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: CircleAvatar(backgroundColor: Colors.white, radius: 20),
-              ),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 120,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    width: 80,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ],
-              ),
+              SizedBox(
+                  width: 120,
+                  height: 12,
+                  child: DecoratedBox(decoration: _bone)),
+              SizedBox(height: 8),
+              SizedBox(
+                  width: 80,
+                  height: 10,
+                  child: DecoratedBox(decoration: _bone)),
             ],
           ),
-        ),
+        ],
       ),
     );
   }
